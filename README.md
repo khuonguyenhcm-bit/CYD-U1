@@ -26,12 +26,15 @@ The display connects to Moonraker over Wi-Fi and mirrors the printer's state in 
 | **Idle / Ready** | <img src="docs/state-idle.gif" width="120"> | Dark sleeping screen with a calm moon animation. Tap **START** to browse `.gcode` files stored on the printer — each with its thumbnail — then confirm to print. |
 | **Printing** | <img src="docs/state-printing.gif" width="120"> | Animated printer illustration, live progress bar, current/total layer, remaining time, and temperatures for all 4 hotends, bed, and chamber. The active hotend's dot blinks. **Pause/Resume** and **Stop** buttons included. |
 | **Error** | <img src="docs/state-error.gif" width="120"> | Red alert animation with the printer's error message, so you notice a failed print at a glance. |
+| **Preparing** 🆕 | <img src="docs/state-preparing.gif" width="120"> | Heating animation while the printer warms up the hotend and bed before printing starts. |
+| **Paused** 🆕 | <img src="docs/state-paused.gif" width="120"> | Dedicated pause animation. Tap **Resume** to continue (with confirmation). |
+| **Complete** 🆕 | <img src="docs/state-complete.gif" width="120"> | Celebration animation when a print finishes. Returns to idle automatically after 15 minutes. |
 
 ## Flash the firmware
 
 Flash directly from your browser (Chrome/Edge) — no software to install:
 
-👉 **[Flash via khuong.cloud](https://khuong.cloud/)**
+👉 **[Flash via khuong.cloud](https://khuong.cloud/cyd-flash/)**
 
 Steps:
 1. Connect the CYD display to your computer via USB.
@@ -51,6 +54,18 @@ cd CYD-U1
 # Open in VS Code with the PlatformIO extension, then Build + Upload
 # Board auto-enters download mode — no need to hold BOOT during upload
 ```
+
+## Version History
+
+### v1.1
+- New **Preparing** state: shows heating animation while the printer warms up before printing
+- New **Complete** state: celebration animation when a print finishes (auto-returns to idle after 15 min)
+- New **Paused** state: dedicated pause animation
+- **Pause/Stop confirmation**: tap Pause or Stop now asks for confirmation before acting
+- All status animations enlarged by 10%
+
+### v1.0
+- Initial public release: portrait UI, animated Idle/Printing/Error screens, file browser with thumbnails, print confirmation, 4-hotend + chamber temps
 
 ## License
 

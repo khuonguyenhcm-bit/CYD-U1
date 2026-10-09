@@ -5,6 +5,7 @@
 #include "printer_anim.h"
 #include "anim_new_states.h"
 #include "anim_paused.h"
+#include "printer_autoscan.h"
 #include "panel.h"
 #include <stdlib.h>
 #include <string.h>
@@ -33,6 +34,7 @@ static lv_obj_t* ah_temp_dot[6];
 static int ah_active_dot = -1;
 static lv_obj_t* ah_btn_box;
 static lv_obj_t* ah_pause_lbl;
+static lv_obj_t* ah_find_btn = NULL;
 static lv_timer_t* ah_anim_timer = NULL;
 static int ah_phase = 0;
 
@@ -154,6 +156,11 @@ static void ah_anim_cb(lv_timer_t* t) {
   if (kind == 3) txt = "Preparing...";
   else if (kind == 4) txt = "Print Complete!";
   lv_label_set_text(ah_status, txt);
+
+  // Auto-scan printer khi mat ket noi
+  bool is_connecting = (st == PrinterState::PrinterStateOffline);
+  autoscan_notify_state(is_connecting);
+  autoscan_loop();
 }
 
 static lv_obj_t* ah_confirm_box = NULL;
@@ -219,6 +226,7 @@ static void ah_on_stop(lv_event_t* e) {
 
 static void ah_show_home(void);
 static void ah_on_start(lv_event_t* e);
+static void ah_on_find(lv_event_t* e);
 
 static void ah_on_start(lv_event_t* e) {
   (void)e;
@@ -265,6 +273,11 @@ static void ah_refresh(void) {
   if (ah_start_btn) {
     if (idle) lv_obj_clear_flag(ah_start_btn, LV_OBJ_FLAG_HIDDEN);
     else lv_obj_add_flag(ah_start_btn, LV_OBJ_FLAG_HIDDEN);
+  }
+  if (ah_find_btn) {
+    bool offline = (st == PrinterState::PrinterStateOffline);
+    if (offline) lv_obj_clear_flag(ah_find_btn, LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(ah_find_btn, LV_OBJ_FLAG_HIDDEN);
   }
   if (ah_bar) {
     if (printing) {
@@ -356,6 +369,18 @@ static void ah_show_home(void) {
   lv_obj_set_style_text_color(stxt, lv_color_hex(0xFFFFFF), 0);
   lv_obj_center(stxt);
   lv_obj_add_flag(ah_start_btn, LV_OBJ_FLAG_HIDDEN);
+  // Nut Find Printer (hien khi offline)
+  ah_find_btn = lv_btn_create(lv_scr_act());
+  lv_obj_set_size(ah_find_btn, 200, 50);
+  lv_obj_align(ah_find_btn, LV_ALIGN_TOP_MID, 0, 200);
+  lv_obj_set_style_bg_color(ah_find_btn, lv_color_hex(0x2196F3), 0);
+  lv_obj_set_style_radius(ah_find_btn, 10, 0);
+  lv_obj_add_event_cb(ah_find_btn, ah_on_find, LV_EVENT_CLICKED, NULL);
+  lv_obj_t* ftxt = lv_label_create(ah_find_btn);
+  lv_label_set_text(ftxt, "Find Printer");
+  lv_obj_set_style_text_color(ftxt, lv_color_hex(0xFFFFFF), 0);
+  lv_obj_center(ftxt);
+  lv_obj_add_flag(ah_find_btn, LV_OBJ_FLAG_HIDDEN);
   ah_bar = lv_bar_create(lv_scr_act());
   lv_obj_set_size(ah_bar, 200, 12);
   lv_obj_align(ah_bar, LV_ALIGN_TOP_MID, 0, 138);
@@ -421,9 +446,21 @@ static void ah_show_home(void) {
   ah_refresh();
 }
 
+static void ah_on_find(lv_event_t* e) {
+  (void)e;
+  autoscan_trigger_now();
+}
+
 void audi_home_init(void) {
   ah_show_home();
   lv_msg_subscribe(DATA_PRINTER_DATA, ah_on_msg, NULL);
   if (ah_anim_timer) lv_timer_del(ah_anim_timer);
   ah_anim_timer = lv_timer_create(ah_anim_cb, 650, NULL);
+  autoscan_init([](const char* ip_str) {
+    if (!get_current_printer() || !get_current_printer()->printer_config) return;
+    PrinterConfiguration* cfg = get_current_printer()->printer_config;
+    strncpy(cfg->printer_host, ip_str, sizeof(cfg->printer_host) - 1);
+    cfg->printer_host[sizeof(cfg->printer_host) - 1] = '\0';
+    cfg->ip_configured = true;
+  });
 }

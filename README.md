@@ -57,8 +57,13 @@ cd CYD-U1
 
 ## Version History
 
+### v1.2
+- **Auto-scan printer**: if the display can't reach the printer for 3 minutes, it automatically scans your WiFi network for Moonraker (port 7125) and reconnects — no need to know the printer's IP
+- **Find Printer button**: tap to scan immediately instead of waiting
+- Scan retries 2 times, then waits 3 minutes and repeats until connected
+
 ### v1.1
-- New **Preparing** state: shows heating animation while the printer warms up before printing
+- New **Preparing** state: heating animation while the printer warms up before printing
 - New **Complete** state: celebration animation when a print finishes (auto-returns to idle after 15 min)
 - New **Paused** state: dedicated pause animation
 - **Pause/Stop confirmation**: tap Pause or Stop now asks for confirmation before acting

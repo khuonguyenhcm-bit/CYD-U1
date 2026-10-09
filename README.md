@@ -31,7 +31,7 @@ The display connects to Moonraker over Wi-Fi and mirrors the printer's state in 
 
 Flash directly from your browser (Chrome/Edge) — no software to install:
 
-👉 **[Flash via khuong.cloud](https://khuong.cloud/cyd-flash/)**
+👉 **[Flash via khuong.cloud](https://khuong.cloud/)**
 
 Steps:
 1. Connect the CYD display to your computer via USB.

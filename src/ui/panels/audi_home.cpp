@@ -2,7 +2,6 @@
 #include "../../core/printer_integration.hpp"
 #include "../../core/current_printer.h"
 #include "printer_anim.h"
-#include "avatar.h"
 #include "panel.h"
 #include <stdlib.h>
 #include <string.h>
@@ -227,7 +226,13 @@ static void ah_show_home(void) {
   ah_anim_kind = -1;
   ah_anim_frame = 0;
   ah_printer_name = lv_label_create(lv_scr_act());
-  lv_label_set_text(ah_printer_name, "SnapDaddy");
+ {
+  const char* pname = get_current_printer()->printer_config->printer_name;
+  if (!pname || pname[0] == '\0') pname = get_current_printer()->printer_config->printer_host;
+  if (!pname || pname[0] == '\0') pname = "Snapmaker U1";
+  lv_label_set_text(ah_printer_name, pname);
+}
+
   lv_obj_align(ah_printer_name, LV_ALIGN_TOP_MID, 0, 86);
   lv_obj_set_style_text_color(ah_printer_name, lv_color_hex(C_TEXT), 0);
   ah_status = lv_label_create(lv_scr_act());
@@ -244,20 +249,6 @@ static void ah_show_home(void) {
   lv_obj_set_style_text_color(stxt, lv_color_hex(0xFFFFFF), 0);
   lv_obj_center(stxt);
   lv_obj_add_flag(ah_start_btn, LV_OBJ_FLAG_HIDDEN);
-  static lv_img_dsc_t avatar_dsc;
-  avatar_dsc.header.always_zero = 0;
-  avatar_dsc.header.w = AVATAR_SIZE;
-  avatar_dsc.header.h = AVATAR_SIZE;
-  avatar_dsc.header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA;
-  avatar_dsc.data_size = AVATAR_SIZE * AVATAR_SIZE * 3;
-  avatar_dsc.data = avatar_data;
-  lv_obj_t* avatar = lv_img_create(lv_scr_act());
-  lv_img_set_src(avatar, &avatar_dsc);
-  lv_obj_align(avatar, LV_ALIGN_BOTTOM_RIGHT, -8, -8);
-  lv_obj_t* uname = lv_label_create(lv_scr_act());
-  lv_label_set_text(uname, "khuong nguyen");
-  lv_obj_align(uname, LV_ALIGN_BOTTOM_RIGHT, -48, -16);
-  lv_obj_set_style_text_color(uname, lv_color_hex(C_GRAY), 0);
   ah_bar = lv_bar_create(lv_scr_act());
   lv_obj_set_size(ah_bar, 200, 12);
   lv_obj_align(ah_bar, LV_ALIGN_TOP_MID, 0, 138);

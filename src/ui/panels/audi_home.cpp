@@ -1,7 +1,10 @@
+#include <Arduino.h>
 #include "lvgl.h"
 #include "../../core/printer_integration.hpp"
 #include "../../core/current_printer.h"
 #include "printer_anim.h"
+#include "anim_new_states.h"
+#include "anim_paused.h"
 #include "panel.h"
 #include <stdlib.h>
 #include <string.h>
@@ -38,6 +41,9 @@ static void ah_show_frame(void) {
   if (ah_anim_kind == 0) src = anim_printing[ah_anim_frame];
   else if (ah_anim_kind == 1) src = anim_error[ah_anim_frame];
   else if (ah_anim_kind == 2) src = anim_sleeping[ah_anim_frame];
+  else if (ah_anim_kind == 3) src = anim_preparing[ah_anim_frame];
+  else if (ah_anim_kind == 4) src = anim_complete[ah_anim_frame];
+  else if (ah_anim_kind == 5) src = anim_paused[ah_anim_frame];
   if (!src) return;
   ah_img_dsc.data = (uint8_t*)src;
   lv_img_set_src(ah_anim_img, &ah_img_dsc);
@@ -46,11 +52,57 @@ static void ah_show_frame(void) {
 static void ah_anim_cb(lv_timer_t* t) {
   (void)t;
   PrinterState st = get_current_printer_data()->state;
+  PrinterData* pd = get_current_printer_data();
+
+  // Phat hien dang chuan bi: dang in nhung progress ~0 va nhiet chua dat target
+  bool is_preparing = false;
+  if (st == PrinterState::PrinterStatePrinting) {
+    float prog = pd->print_progress;
+    if (prog < 0.01) {
+      for (int i = 0; i < 4; i++) {
+        if (pd->target_temperatures[i+1] > 50 &&
+            pd->temperatures[i+1] < pd->target_temperatures[i+1] - 5) {
+          is_preparing = true; break;
+        }
+      }
+      if (!is_preparing && pd->target_temperatures[0] > 50 &&
+          pd->temperatures[0] < pd->target_temperatures[0] - 5)
+        is_preparing = true;
+    }
+  }
+
+  // Phat hien vua in xong: chuyen tu Printing/Paused sang Idle
+  static PrinterState prev_st = PrinterState::PrinterStateOffline;
+  static bool show_complete = false;
+  static unsigned long complete_start_ms = 0;
+  if ((prev_st == PrinterState::PrinterStatePrinting ||
+       prev_st == PrinterState::PrinterStatePaused) &&
+      st == PrinterState::PrinterStateIdle) {
+    show_complete = true;
+  }
+  if (st != PrinterState::PrinterStateIdle) {
+    show_complete = false;
+    complete_start_ms = 0;
+  }
+  // Sau 15 phut o man hinh complete thi ve idle
+  if (show_complete) {
+    if (complete_start_ms == 0) complete_start_ms = millis();
+    else if (millis() - complete_start_ms > 15UL * 60UL * 1000UL) {
+      show_complete = false;
+      complete_start_ms = 0;
+    }
+  }
+  prev_st = st;
+
+  // Chon GIF: 0=in, 1=loi, 2=ngu, 3=chuan bi, 4=hoan thanh, 5=tam dung
   int kind;
-  if (st == PrinterState::PrinterStatePrinting ||
-      st == PrinterState::PrinterStatePaused) kind = 0;
+  if (show_complete) kind = 4;
+  else if (is_preparing) kind = 3;
+  else if (st == PrinterState::PrinterStatePaused) kind = 5;
+  else if (st == PrinterState::PrinterStatePrinting) kind = 0;
   else if (st == PrinterState::PrinterStateError) kind = 1;
   else kind = 2;
+
   if (kind != ah_anim_kind) {
     ah_anim_kind = kind;
     ah_anim_frame = 0;
@@ -67,9 +119,14 @@ static void ah_anim_cb(lv_timer_t* t) {
   if (ah_anim_img) {
     ah_show_frame();
     int nframes = (kind == 0) ? ANIM_PRINTING_FRAMES :
-                  (kind == 1) ? ANIM_ERROR_FRAMES : ANIM_SLEEPING_FRAMES;
+                  (kind == 1) ? ANIM_ERROR_FRAMES :
+                  (kind == 3) ? ANIM_PREPARING_FRAMES :
+                  (kind == 4) ? ANIM_COMPLETE_FRAMES :
+                  (kind == 5) ? ANIM_PAUSED_FRAMES : ANIM_SLEEPING_FRAMES;
     ah_anim_frame = (ah_anim_frame + 1) % nframes;
   }
+
+  // Chop cham do extruder dang chay
   if (st == PrinterState::PrinterStatePrinting ||
       st == PrinterState::PrinterStatePaused) {
     ah_phase++;
@@ -83,6 +140,8 @@ static void ah_anim_cb(lv_timer_t* t) {
       }
     }
   }
+
+  // Cap nhat trang thai text
   const char* txt = "";
   switch (st) {
     case PrinterState::PrinterStatePrinting: txt = "Printing"; break;
@@ -92,10 +151,46 @@ static void ah_anim_cb(lv_timer_t* t) {
     case PrinterState::PrinterStateError: txt = "Printer Error"; break;
     default: break;
   }
-  if (ah_status) lv_label_set_text(ah_status, txt);
+  if (kind == 3) txt = "Preparing...";
+  else if (kind == 4) txt = "Print Complete!";
+  lv_label_set_text(ah_status, txt);
 }
 
-static void ah_on_pause(lv_event_t* e) {
+static lv_obj_t* ah_confirm_box = NULL;
+
+static void ah_close_confirm(lv_event_t* e) {
+  (void)e;
+  if (ah_confirm_box) { lv_obj_del(ah_confirm_box); ah_confirm_box = NULL; }
+}
+
+static void ah_show_confirm(const char* msg, void (*on_yes)(lv_event_t*)) {
+  if (ah_confirm_box) lv_obj_del(ah_confirm_box);
+  ah_confirm_box = lv_obj_create(lv_scr_act());
+  lv_obj_set_size(ah_confirm_box, 200, 140);
+  lv_obj_center(ah_confirm_box);
+  lv_obj_set_style_bg_color(ah_confirm_box, lv_color_hex(0xFFFFFF), 0);
+  lv_obj_set_style_radius(ah_confirm_box, 12, 0);
+  lv_obj_t* lbl = lv_label_create(ah_confirm_box);
+  lv_label_set_text(lbl, msg);
+  lv_obj_align(lbl, LV_ALIGN_TOP_MID, 0, 10);
+  lv_obj_t* btn_yes = lv_btn_create(ah_confirm_box);
+  lv_obj_set_size(btn_yes, 80, 40);
+  lv_obj_align(btn_yes, LV_ALIGN_BOTTOM_LEFT, 10, -10);
+  lv_obj_set_style_bg_color(btn_yes, lv_color_hex(0x4CAF50), 0);
+  lv_obj_t* l1 = lv_label_create(btn_yes);
+  lv_label_set_text(l1, "Yes"); lv_obj_center(l1);
+  lv_obj_add_event_cb(btn_yes, on_yes, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(btn_yes, ah_close_confirm, LV_EVENT_CLICKED, NULL);
+  lv_obj_t* btn_no = lv_btn_create(ah_confirm_box);
+  lv_obj_set_size(btn_no, 80, 40);
+  lv_obj_align(btn_no, LV_ALIGN_BOTTOM_RIGHT, -10, -10);
+  lv_obj_set_style_bg_color(btn_no, lv_color_hex(0x9E9E9E), 0);
+  lv_obj_t* l2 = lv_label_create(btn_no);
+  lv_label_set_text(l2, "Cancel"); lv_obj_center(l2);
+  lv_obj_add_event_cb(btn_no, ah_close_confirm, LV_EVENT_CLICKED, NULL);
+}
+
+static void ah_do_pause(lv_event_t* e) {
   (void)e;
   PrinterState st = get_current_printer_data()->state;
   if (st == PrinterState::PrinterStatePrinting)
@@ -104,9 +199,22 @@ static void ah_on_pause(lv_event_t* e) {
     current_printer_execute_feature(PrinterFeatures::PrinterFeatureResume);
 }
 
-static void ah_on_stop(lv_event_t* e) {
+static void ah_do_stop(lv_event_t* e) {
   (void)e;
   current_printer_execute_feature(PrinterFeatures::PrinterFeatureStop);
+}
+
+static void ah_on_pause(lv_event_t* e) {
+  (void)e;
+  PrinterState st = get_current_printer_data()->state;
+  const char* msg = (st == PrinterState::PrinterStatePaused)
+    ? "Resume print?" : "Pause print?";
+  ah_show_confirm(msg, ah_do_pause);
+}
+
+static void ah_on_stop(lv_event_t* e) {
+  (void)e;
+  ah_show_confirm("Stop print?", ah_do_stop);
 }
 
 static void ah_show_home(void);
@@ -222,17 +330,16 @@ static void ah_show_home(void) {
   ah_img_dsc.data = NULL;
   ah_anim_img = lv_img_create(lv_scr_act());
   lv_obj_align(ah_anim_img, LV_ALIGN_TOP_MID, 0, 4);
+  lv_img_set_zoom(ah_anim_img, 282);
   lv_img_set_src(ah_anim_img, &ah_img_dsc);
   ah_anim_kind = -1;
   ah_anim_frame = 0;
   ah_printer_name = lv_label_create(lv_scr_act());
- {
-  const char* pname = get_current_printer()->printer_config->printer_name;
-  if (!pname || pname[0] == '\0') pname = get_current_printer()->printer_config->printer_host;
-  if (!pname || pname[0] == '\0') pname = "Snapmaker U1";
+  const char* pname = "Printer";
+  if (get_current_printer() && get_current_printer()->printer_config)
+    pname = get_current_printer()->printer_config->printer_name;
+  if (!pname || !pname[0]) pname = "Printer";
   lv_label_set_text(ah_printer_name, pname);
-}
-
   lv_obj_align(ah_printer_name, LV_ALIGN_TOP_MID, 0, 86);
   lv_obj_set_style_text_color(ah_printer_name, lv_color_hex(C_TEXT), 0);
   ah_status = lv_label_create(lv_scr_act());

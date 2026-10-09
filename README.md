@@ -3,6 +3,7 @@
 Custom Klipper display firmware for the Snapmaker U1 — based on [CYD-Klipper](https://github.com/printorems/cyd-klipper), reworked with a portrait UI, animated status screens, and one-tap printing.
 
 If you like this project, consider [☕ buying me a coffee](https://buymeacoffee.com/khuongka). Questions or feature requests? Open an issue — happy to help.
+> **📩 Need custom firmware or have any questions? Contact me on WhatsApp: `wallenme`**
 
 ## Hardware requirements
 

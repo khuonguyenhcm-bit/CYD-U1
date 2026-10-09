@@ -1,0 +1,116 @@
+
+#include "data_setup.h"
+#include "semaphore.h"
+#include <esp_task_wdt.h>
+#include <UrlEncode.h>
+#include <WiFi.h>
+#include "printer_integration.hpp"
+#include "klipper/klipper_printer_integration.hpp"
+#include "klipper-serial/serial_klipper_printer_integration.hpp"
+#include "bambu/bambu_printer_integration.hpp"
+#include "octoprint/octoprint_printer_integration.hpp"
+
+const long data_update_interval = 780;
+
+void fetch_printer_data() {
+    freeze_request_thread();
+
+    if (get_current_printer_data()->state == PrinterStateOffline) {
+        if (!get_current_printer()->connect()) {
+            LOG_LN("Failed to connect to printer");
+            unfreeze_request_thread();
+            return;
+            }
+        }
+
+    bool fetch_result = get_current_printer()->fetch();
+    unfreeze_request_thread();
+
+    freeze_render_thread();
+    if (!fetch_result) {
+        LOG_LN("Failed to fetch printer data")
+            get_current_printer()->disconnect();
+        }
+
+    get_current_printer()->AnnouncePrinterData();
+    unfreeze_render_thread();
+    }
+
+void fetch_printer_data_minimal() {
+    PrinterDataMinimal data[PRINTER_CONFIG_COUNT] = { {} };
+    for (int i = 0; i < get_printer_count(); i++) {
+        freeze_request_thread();
+        BasePrinter* printer = get_printer(i);
+        unfreeze_request_thread();
+        data[i] = printer->fetch_min();
+        }
+    freeze_render_thread();
+    announce_printer_data_minimal(data);
+    unfreeze_render_thread();
+    }
+
+void data_loop() {
+    // Causes other threads that are trying to lock the thread to actually lock it
+    unfreeze_render_thread();
+    delay(1);
+    freeze_render_thread();
+    }
+
+void data_loop_background(void* param) {
+    esp_task_wdt_init(10, true);
+    int loop_iter = 20;
+    // Wait for network stack to be fully initialized
+    delay(2000);
+    while (true) {
+        delay(data_update_interval);
+        if (WiFi.status() != WL_CONNECTED) {
+            continue;
+            }
+        fetch_printer_data();
+        if (global_config.multi_printer_mode) {
+            if (loop_iter++ > 20) {
+                fetch_printer_data_minimal();
+                loop_iter = 0;
+                }
+            }
+        }
+    }
+
+TaskHandle_t background_loop;
+
+void data_setup() {
+    BasePrinter** available_printers = (BasePrinter**)malloc(sizeof(BasePrinter*) * PRINTER_CONFIG_COUNT);
+    int count = 0;
+    int true_current_printer_index = 0;
+    for (int i = 0; i < PRINTER_CONFIG_COUNT; i++) {
+        if (global_config.printer_config[i].setup_complete) {
+            if (global_config.printer_index == i) {
+                true_current_printer_index = count;;
+                }
+
+            switch (global_config.printer_config[i].printer_type) {
+                case PrinterType::PrinterTypeKlipper:
+                    available_printers[count++] = new KlipperPrinter(i);
+                    break;
+                case PrinterType::PrinterTypeBambuLocal:
+                    available_printers[count++] = new BambuPrinter(i);
+                    break;
+                case PrinterType::PrinterTypeKlipperSerial:
+                    available_printers[count++] = new SerialKlipperPrinter(i);
+                    break;
+                case PrinterType::PrinterTypeOctoprint:
+                    available_printers[count++] = new OctoPrinter(i);
+                    break;
+                }
+            }
+        }
+
+    initialize_printers(available_printers, count);
+    set_current_printer(true_current_printer_index);
+    LOG_F(("Free heap after printer creation: %d bytes\n", esp_get_free_heap_size()));
+    semaphore_init();
+    // Initial fetch removed - will be done by background task after delay
+    freeze_render_thread();
+    // Run on core 1 to avoid conflicts with WiFi/lwIP on core 0
+    xTaskCreatePinnedToCore(data_loop_background, "data_loop_background", 8192, NULL, 2, &background_loop, 1);
+    }

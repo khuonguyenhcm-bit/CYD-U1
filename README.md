@@ -15,9 +15,11 @@ If you like this project, consider [☕ buying me a coffee](https://buymeacoffee
 
 The display connects to Moonraker over Wi-Fi and mirrors the printer's state in real time. The screen automatically switches illustration and layout per state:
 
-- **Idle / Ready** — Dark sleeping screen with a calm moon animation. Tap **START** to browse `.gcode` files stored on the printer — each with its thumbnail — then confirm to print.
-- **Printing** — Animated printer illustration, live progress bar, current/total layer, remaining time, and temperatures for all 4 hotends, bed, and chamber. The active hotend's dot blinks. **Pause/Resume** and **Stop** buttons included.
-- **Error** — Red alert animation with the printer's error message, so you notice a failed print at a glance.
+| State | Preview | Description |
+|---|---|---|
+| **Idle / Ready** | <img src="docs/state-idle.gif" width="120"> | Dark sleeping screen with a calm moon animation. Tap **START** to browse `.gcode` files stored on the printer — each with its thumbnail — then confirm to print. |
+| **Printing** | <img src="docs/state-printing.gif" width="120"> | Animated printer illustration, live progress bar, current/total layer, remaining time, and temperatures for all 4 hotends, bed, and chamber. The active hotend's dot blinks. **Pause/Resume** and **Stop** buttons included. |
+| **Error** | <img src="docs/state-error.gif" width="120"> | Red alert animation with the printer's error message, so you notice a failed print at a glance. |
 
 ## Flash the firmware
 
@@ -38,12 +40,4 @@ Steps:
 Requires [PlatformIO](https://platformio.org/):
 
 ```bash
-git clone https://github.com/khuonguyenhcm-bit/CYD-U1.git
-cd CYD-U1
-# Open in VS Code with the PlatformIO extension, then Build + Upload
-# Board auto-enters download mode — no need to hold BOOT during upload
-```
-
-## License
-
-Based on [CYD-Klipper](https://github.com/printorems/cyd-klipper). Custom UI by khuong nguyen.
+git clone

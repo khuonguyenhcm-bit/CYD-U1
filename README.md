@@ -3,6 +3,7 @@
 Custom Klipper display firmware for the Snapmaker U1 — based on [CYD-Klipper](https://github.com/printorems/cyd-klipper), reworked with a portrait UI, animated status screens, and one-tap printing.
 
 If you like this project, consider [☕ buying me a coffee](https://buymeacoffee.com/khuongka). Questions or feature requests? Open an issue — happy to help.
+
 > **📩 Need custom firmware or have any questions? Contact me on WhatsApp: `wallenme`**
 
 ## Hardware requirements
@@ -11,6 +12,10 @@ If you like this project, consider [☕ buying me a coffee](https://buymeacoffee
 - **Printer:** Snapmaker U1 running Klipper + Moonraker (port `7125`)
 - **Network:** 2.4 GHz Wi-Fi (display and printer on the same network)
 - **Slicer:** OrcaSlicer / Snapmaker Orca with `32x32` thumbnails enabled for preview images
+
+| Front | Back | Detail |
+|---|---|---|
+| <img src="docs/board-front.jpg" width="220"> | <img src="docs/board-back.jpg" width="220"> | <img src="docs/board-detail.jpg" width="220"> |
 
 ## How it works
 
@@ -41,4 +46,12 @@ Steps:
 Requires [PlatformIO](https://platformio.org/):
 
 ```bash
-git clone
+git clone https://github.com/khuonguyenhcm-bit/CYD-U1.git
+cd CYD-U1
+# Open in VS Code with the PlatformIO extension, then Build + Upload
+# Board auto-enters download mode — no need to hold BOOT during upload
+```
+
+## License
+
+Based on [CYD-Klipper](https://github.com/printorems/cyd-klipper). Custom UI by khuong nguyen.

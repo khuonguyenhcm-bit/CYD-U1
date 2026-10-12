@@ -37,7 +37,10 @@ static void btn_print_file_verify(lv_event_t * e)
     lv_obj_t * panel = lv_obj_create(lv_scr_act());
     lv_obj_set_style_pad_hor(panel, CYD_SCREEN_GAP_PX * 2, 0);
     lv_obj_set_style_pad_ver(panel, CYD_SCREEN_GAP_PX, 0);
-    lv_obj_set_size(panel, CYD_SCREEN_WIDTH_PX - CYD_SCREEN_GAP_PX * 4, CYD_SCREEN_HEIGHT_PX - CYD_SCREEN_GAP_PX * 3);
+    // Use the real display size: the CYD_SCREEN_* constants hold landscape
+    // values (320x240), which made this dialog overflow on both sides of
+    // the portrait screen and clip the filename
+    lv_obj_set_size(panel, lv_disp_get_hor_res(NULL) - CYD_SCREEN_GAP_PX * 4, lv_disp_get_ver_res(NULL) - CYD_SCREEN_GAP_PX * 3);
     lv_obj_align(panel, LV_ALIGN_CENTER, 0, 0);
     lv_layout_flex_column(panel, LV_FLEX_ALIGN_CENTER);
 

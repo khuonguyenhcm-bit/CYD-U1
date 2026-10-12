@@ -248,6 +248,27 @@ static void ah_on_start(lv_event_t* e) {
   lv_obj_set_style_border_width(list_holder, 0, 0);
   lv_obj_set_style_pad_all(list_holder, 0, 0);
   files_panel_init(list_holder);
+  // Danh sach file cua stock dung mau chu theo theme (trang) nen tren nen
+  // trang se khong thay ten file: ep chu trong danh sach sang mau den.
+  // List cung dung kich thuoc ngang (320) nen bi cuon trai/phai: ep ve
+  // dung khung doc 230x220 va chi cho cuon doc.
+  lv_obj_set_style_text_color(list_holder, lv_color_hex(0x000000), 0);
+  lv_obj_t* lst = lv_obj_get_child(list_holder, 0);
+  if (lst) {
+    if (lv_obj_get_child_cnt(lst) > 0) {
+      lv_obj_set_size(lst, 230, 220);
+      lv_obj_set_scroll_dir(lst, LV_DIR_VER);
+    }
+    uint32_t n = lv_obj_get_child_cnt(lst);
+    for (uint32_t i = 0; i < n; i++) {
+      lv_obj_t* row = lv_obj_get_child(lst, i);
+      lv_obj_set_style_text_color(row, lv_color_hex(0x000000), 0);
+      uint32_t m = lv_obj_get_child_cnt(row);
+      for (uint32_t j = 0; j < m; j++)
+        lv_obj_set_style_text_color(lv_obj_get_child(row, j),
+                                    lv_color_hex(0x000000), 0);
+    }
+  }
   lv_obj_t* bb = lv_btn_create(panel);
   lv_obj_set_size(bb, 120, 38);
   lv_obj_align(bb, LV_ALIGN_BOTTOM_MID, 0, -10);

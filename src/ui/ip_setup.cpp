@@ -587,6 +587,9 @@ void show_ip_entry()
             lv_obj_set_flex_grow(port_entry, 4);
             lv_obj_set_flex_grow(host_entry, 6);
             lv_textarea_set_max_length(port_entry, 8);
+            // Access codes contain letters, so the port field must not use
+            // the default numeric keyboard: give it the full keyboard map
+            lv_obj_add_flag(port_entry, LV_OBJ_FLAG_USER_1);
             lv_textarea_set_placeholder_text(host_entry, "Printer IP");
             lv_textarea_set_placeholder_text(port_entry, "Access code");
             lv_textarea_set_placeholder_text(auth_entry, "Printer serial number");

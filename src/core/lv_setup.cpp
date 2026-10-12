@@ -163,6 +163,24 @@ void lv_do_calibration(){
     lv_coord_t x2 = point[0];
     lv_coord_t y2 = point[1];
 
+#ifdef CYD_SCREEN_DRIVER_ESP32_2432S028R
+    // With the screen rotated 180 degrees, the calibration points above are
+    // captured in rotated screen space, but the coefficients below are
+    // applied in unrotated space (LVGL rotates the touch point afterwards).
+    // Swap the two points so each raw reading is matched with the corner it
+    // belongs to. Without this, every touch is mirrored through the center
+    // of the screen and the keyboard is unusable after rotating.
+    if (global_config.rotate_screen)
+    {
+        lv_coord_t swap_x = x1;
+        lv_coord_t swap_y = y1;
+        x1 = x2;
+        y1 = y2;
+        x2 = swap_x;
+        y2 = swap_y;
+    }
+#endif
+
 #ifdef CYD_SCREEN_DRIVER_ESP32_SMARTDISPLAY
     int16_t xDist = CYD_SCREEN_HEIGHT_PX - 20;
     int16_t yDist = CYD_SCREEN_WIDTH_PX - 20;

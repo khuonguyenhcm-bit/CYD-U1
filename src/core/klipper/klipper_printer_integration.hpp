@@ -15,7 +15,9 @@ class KlipperPrinter : public BasePrinter
     private:
         unsigned int slicer_estimated_print_time_s{};
         unsigned int last_slicer_time_query{};
+        unsigned char filament_fetch_counter{};
         void configure_http_client(HTTPClient &client, String url_part, bool stream, int timeout);
+        void fetch_filament();
 
     protected:
         unsigned char lock_absolute_relative_mode_swap{};
@@ -27,6 +29,7 @@ class KlipperPrinter : public BasePrinter
 
         int parse_slicer_time_estimate(JsonDocument& in);
         void parse_state(JsonDocument& in);
+        void parse_filament(JsonDocument& in);
         void parse_state_min(JsonDocument &in, PrinterDataMinimal* data);
         Macros parse_macros(JsonDocument &in);
         int parse_macros_count(JsonDocument &in);

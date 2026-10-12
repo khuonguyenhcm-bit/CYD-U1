@@ -28,15 +28,50 @@ static lv_obj_t* ah_printer_name;
 static lv_obj_t* ah_start_btn;
 static lv_obj_t* ah_bar;
 static lv_obj_t* ah_info;
-static lv_obj_t* ah_temp_box;
-static lv_obj_t* ah_temp_lbl[6];
-static lv_obj_t* ah_temp_dot[6];
+static lv_obj_t* ah_ctrl_box;
+static lv_obj_t* ah_ctrl_val[4];
+static lv_obj_t* ah_ctrl_badge_num;
+static lv_obj_t* ah_badge_parts[3];
+static lv_obj_t* ah_fil_box;
+static lv_obj_t* ah_fil_circle[4];
+static lv_obj_t* ah_fil_num[4];
+static lv_obj_t* ah_fil_type[4];
 static int ah_active_dot = -1;
+static bool ah_bg_dark = false;
 static lv_obj_t* ah_btn_box;
 static lv_obj_t* ah_pause_lbl;
 static lv_obj_t* ah_find_btn = NULL;
 static lv_timer_t* ah_anim_timer = NULL;
 static int ah_phase = 0;
+
+// Chuan hoa mau nhua ve bang mau chuan theo sac mau (hue), giong cach
+// man hinh zin cua may in hien thi (vd hong magenta -> do, cyan nhat
+// giu dung cyan chu khong bi keo ve vang nhu cach tinh theo do sang).
+static unsigned int ah_snap_color(unsigned int c) {
+  int r = (c >> 16) & 0xFF, g = (c >> 8) & 0xFF, b = c & 0xFF;
+  int mx = r > g ? (r > b ? r : b) : (g > b ? g : b);
+  int mn = r < g ? (r < b ? r : b) : (g < b ? g : b);
+  int d = mx - mn;
+  // Mau gan nhu khong co sac (trang / xam / den): xet theo do sang
+  if (d < 26) {
+    if (mx > 216) return 0xFFFFFF;
+    if (mx < 64) return 0x000000;
+    return 0x808080;
+  }
+  float h;
+  if (mx == r) h = 60.0f * ((float)(g - b) / d);
+  else if (mx == g) h = 60.0f * (2.0f + (float)(b - r) / d);
+  else h = 60.0f * (4.0f + (float)(r - g) / d);
+  if (h < 0) h += 360.0f;
+  if (h >= 330.0f || h < 15.0f) return 0xE53935;          // do
+  if (h < 45.0f) return mx < 128 ? 0x6D4C41 : 0xFB8C00;  // nau / cam
+  if (h < 75.0f) return 0xFDD835;                        // vang
+  if (h < 165.0f) return 0x43A047;                       // xanh la
+  if (h < 200.0f) return 0x00BCD4;                       // cyan
+  if (h < 255.0f) return 0x1E88E5;                       // xanh duong
+  if (h < 290.0f) return 0x8E24AA;                       // tim
+  return 0xEC407A;                                       // hong
+}
 
 static void ah_show_frame(void) {
   const uint16_t* src = NULL;
@@ -109,10 +144,12 @@ static void ah_anim_cb(lv_timer_t* t) {
     ah_anim_kind = kind;
     ah_anim_frame = 0;
     if (kind == 2) {
+      ah_bg_dark = true;
       lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0x000000), 0);
       lv_obj_set_style_text_color(ah_status, lv_color_hex(0xB0B0B0), 0);
       lv_obj_set_style_text_color(ah_printer_name, lv_color_hex(0xFFFFFF), 0);
     } else {
+      ah_bg_dark = false;
       lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0xFFFFFF), 0);
       lv_obj_set_style_text_color(ah_status, lv_color_hex(0x757575), 0);
       lv_obj_set_style_text_color(ah_printer_name, lv_color_hex(0x212121), 0);
@@ -126,21 +163,6 @@ static void ah_anim_cb(lv_timer_t* t) {
                   (kind == 4) ? ANIM_COMPLETE_FRAMES :
                   (kind == 5) ? ANIM_PAUSED_FRAMES : ANIM_SLEEPING_FRAMES;
     ah_anim_frame = (ah_anim_frame + 1) % nframes;
-  }
-
-  // Chop cham do extruder dang chay
-  if (st == PrinterState::PrinterStatePrinting ||
-      st == PrinterState::PrinterStatePaused) {
-    ah_phase++;
-    bool dot_on = (ah_phase % 5) < 3;
-    for (int i = 0; i < 6; i++) {
-      if (i == ah_active_dot) {
-        if (dot_on) lv_obj_clear_flag(ah_temp_dot[i], LV_OBJ_FLAG_HIDDEN);
-        else lv_obj_add_flag(ah_temp_dot[i], LV_OBJ_FLAG_HIDDEN);
-      } else {
-        lv_obj_clear_flag(ah_temp_dot[i], LV_OBJ_FLAG_HIDDEN);
-      }
-    }
   }
 
   // Cap nhat trang thai text
@@ -304,12 +326,12 @@ static void ah_refresh(void) {
     if (printing) {
       lv_obj_clear_flag(ah_bar, LV_OBJ_FLAG_HIDDEN);
       lv_obj_clear_flag(ah_info, LV_OBJ_FLAG_HIDDEN);
-      lv_obj_clear_flag(ah_temp_box, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_clear_flag(ah_ctrl_box, LV_OBJ_FLAG_HIDDEN);
       lv_obj_clear_flag(ah_btn_box, LV_OBJ_FLAG_HIDDEN);
     } else {
       lv_obj_add_flag(ah_bar, LV_OBJ_FLAG_HIDDEN);
       lv_obj_add_flag(ah_info, LV_OBJ_FLAG_HIDDEN);
-      lv_obj_add_flag(ah_temp_box, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(ah_ctrl_box, LV_OBJ_FLAG_HIDDEN);
       lv_obj_add_flag(ah_btn_box, LV_OBJ_FLAG_HIDDEN);
     }
   }
@@ -328,13 +350,8 @@ static void ah_refresh(void) {
       snprintf(ib, sizeof(ib), "L%d/%d %s", d->current_layer, d->total_layers, tb);
     else snprintf(ib, sizeof(ib), "%s left", tb);
     lv_label_set_text(ah_info, ib);
-    const int idx[6] = {1,2,3,4,0,9};
-    const char* nm[6] = {"T1","T2","T3","T4","Bed","Chm"};
-    for (int i = 0; i < 6; i++) {
-      char tbuf[16];
-      snprintf(tbuf, sizeof(tbuf), "%s %.0f", nm[i], d->temperatures[idx[i]]);
-      lv_label_set_text(ah_temp_lbl[i], tbuf);
-    }
+    // Extruder dang chay: dau phun co target cao nhat.
+    // Neu khong dau nao dang gia nhiet thi lay dau nong nhat.
     ah_active_dot = -1;
     float max_t = 50.0f;
     for (int i = 0; i < 4; i++) {
@@ -343,8 +360,89 @@ static void ah_refresh(void) {
         ah_active_dot = i;
       }
     }
+    if (ah_active_dot < 0) {
+      float best = -1.0f;
+      for (int i = 0; i < 4; i++) {
+        if (d->temperatures[i+1] > best) {
+          best = d->temperatures[i+1];
+          ah_active_dot = i;
+        }
+      }
+    }
+    // Hang Control 4 cot: [extruder dang in] [bed] [buong] [nhua da in - gram]
+    char vbuf[16];
+    if (ah_ctrl_badge_num) {
+      snprintf(vbuf, sizeof(vbuf), "%d", ah_active_dot + 1);
+      lv_label_set_text(ah_ctrl_badge_num, vbuf);
+      // Icon dau phun to mau theo mau nhua (da chuan hoa) cua slot dang
+      // in, khop voi vong tron o hang filament phia duoi
+      unsigned int fc = ah_snap_color(d->filament_colors[ah_active_dot]);
+      int lum = (int)(((fc >> 16) & 0xFF) * 299 + ((fc >> 8) & 0xFF) * 587 +
+                      (fc & 0xFF) * 114) / 1000;
+      for (int i = 0; i < 3; i++) {
+        if (!ah_badge_parts[i]) continue;
+        lv_obj_set_style_bg_color(ah_badge_parts[i], lv_color_hex(fc), 0);
+        // Mau sang (trang, vang nhat...) thi them vien den de khoi bien
+        // mat tren nen trang; mau dam thi khong can vien
+        lv_obj_set_style_border_color(ah_badge_parts[i], lv_color_hex(C_TEXT), 0);
+        lv_obj_set_style_border_width(ah_badge_parts[i],
+            lum > 150 ? (i == 0 ? 2 : 1) : 0, 0);
+      }
+      lv_obj_set_style_text_color(ah_ctrl_badge_num,
+          lv_color_hex(lum > 150 ? 0x212121 : 0xFFFFFF), 0);
+    }
+    if (ah_ctrl_val[0]) {
+      snprintf(vbuf, sizeof(vbuf), "%.0f°C", d->temperatures[ah_active_dot + 1]);
+      lv_label_set_text(ah_ctrl_val[0], vbuf);
+    }
+    if (ah_ctrl_val[1]) {
+      snprintf(vbuf, sizeof(vbuf), "%.0f°C", d->temperatures[0]);
+      lv_label_set_text(ah_ctrl_val[1], vbuf);
+    }
+    if (ah_ctrl_val[2]) {
+      snprintf(vbuf, sizeof(vbuf), "%.0f°C", d->temperatures[9]);
+      lv_label_set_text(ah_ctrl_val[2], vbuf);
+    }
+    if (ah_ctrl_val[3]) {
+      // Klipper chi cho mm; quy doi gram theo PLA 1.75mm (~2.98 g/m)
+      float grams = d->filament_used_mm / 1000.0f * 2.98f;
+      snprintf(vbuf, sizeof(vbuf), "%.0fg", grams);
+      lv_label_set_text(ah_ctrl_val[3], vbuf);
+    }
     lv_label_set_text(ah_pause_lbl,
       st == PrinterState::PrinterStatePrinting ? "Pause" : "Resume");
+  }
+
+  // Hang filament: chi hien khi may co du lieu filament (Snapmaker U1)
+  // va khong o trang thai offline (tranh chong len nut Find Printer)
+  if (ah_fil_box) {
+    bool show_fil = d->filament_data_valid &&
+                    st != PrinterState::PrinterStateOffline;
+    if (show_fil) lv_obj_clear_flag(ah_fil_box, LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(ah_fil_box, LV_OBJ_FLAG_HIDDEN);
+    if (show_fil) {
+      for (int i = 0; i < 4; i++) {
+        if (!d->filament_exist[i] || d->filament_types[i][0] == '\0') {
+          lv_obj_set_style_bg_color(ah_fil_circle[i], lv_color_hex(0xE0E0E0), 0);
+          lv_obj_set_style_text_color(ah_fil_num[i], lv_color_hex(0x9E9E9E), 0);
+          lv_obj_set_style_text_color(ah_fil_type[i], lv_color_hex(0x9E9E9E), 0);
+          lv_label_set_text(ah_fil_type[i], "--");
+        } else {
+          unsigned int c = ah_snap_color(d->filament_colors[i]);
+          lv_obj_set_style_bg_color(ah_fil_circle[i], lv_color_hex(c), 0);
+          // Nen sang thi so mau den, nen toi thi so mau trang cho de doc
+          int lum = (int)(((c >> 16) & 0xFF) * 299 + ((c >> 8) & 0xFF) * 587 +
+                          (c & 0xFF) * 114) / 1000;
+          lv_obj_set_style_text_color(ah_fil_num[i],
+              lv_color_hex(lum > 150 ? 0x212121 : 0xFFFFFF), 0);
+          // Chu loai nhua: mau chu giao dien binh thuong (den tren nen
+          // sang, trang tren nen den) - khong theo mau nhua
+          lv_obj_set_style_text_color(ah_fil_type[i],
+              lv_color_hex(ah_bg_dark ? 0xFFFFFF : C_TEXT), 0);
+          lv_label_set_text(ah_fil_type[i], d->filament_types[i]);
+        }
+      }
+    }
   }
 }
 
@@ -404,7 +502,7 @@ static void ah_show_home(void) {
   lv_obj_add_flag(ah_find_btn, LV_OBJ_FLAG_HIDDEN);
   ah_bar = lv_bar_create(lv_scr_act());
   lv_obj_set_size(ah_bar, 200, 12);
-  lv_obj_align(ah_bar, LV_ALIGN_TOP_MID, 0, 138);
+  lv_obj_align(ah_bar, LV_ALIGN_TOP_MID, 0, 132);
   lv_obj_set_style_radius(ah_bar, 6, 0);
   lv_obj_set_style_bg_color(ah_bar, lv_color_hex(C_TRACK), LV_PART_MAIN);
   lv_obj_set_style_bg_color(ah_bar, lv_color_hex(C_RED), LV_PART_INDICATOR);
@@ -412,34 +510,113 @@ static void ah_show_home(void) {
   lv_bar_set_range(ah_bar, 0, 100);
   lv_bar_set_value(ah_bar, 0, LV_ANIM_OFF);
   ah_info = lv_label_create(lv_scr_act());
-  lv_obj_align(ah_info, LV_ALIGN_TOP_MID, 0, 156);
+  lv_obj_align(ah_info, LV_ALIGN_TOP_MID, 0, 148);
   lv_obj_set_style_text_color(ah_info, lv_color_hex(C_TEXT), 0);
-  ah_temp_box = lv_obj_create(lv_scr_act());
-  lv_obj_set_size(ah_temp_box, 220, 44);
-  lv_obj_align(ah_temp_box, LV_ALIGN_TOP_MID, 0, 180);
-  lv_obj_set_style_bg_opa(ah_temp_box, LV_OPA_TRANSP, 0);
-  lv_obj_set_style_border_width(ah_temp_box, 0, 0);
-  lv_obj_set_style_pad_all(ah_temp_box, 0, 0);
-  lv_obj_clear_flag(ah_temp_box, LV_OBJ_FLAG_SCROLLABLE);
-  const uint32_t dot_c[6] = {0xD32F2F,0xE53935,0xEF5350,0xE57373,0x78909C,0xB0BEC5};
-  for (int i = 0; i < 6; i++) {
-    int col = i % 3, row = i / 3;
-    int x = 8 + col * 72, y = 6 + row * 22;
-    ah_temp_dot[i] = lv_obj_create(ah_temp_box);
-    lv_obj_set_size(ah_temp_dot[i], 8, 8);
-    lv_obj_set_pos(ah_temp_dot[i], x, y + 4);
-    lv_obj_set_style_radius(ah_temp_dot[i], LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_bg_color(ah_temp_dot[i], lv_color_hex(dot_c[i]), 0);
-    lv_obj_set_style_border_width(ah_temp_dot[i], 0, 0);
-    lv_obj_clear_flag(ah_temp_dot[i], LV_OBJ_FLAG_SCROLLABLE);
-    ah_temp_lbl[i] = lv_label_create(ah_temp_box);
-    lv_obj_set_pos(ah_temp_lbl[i], x + 12, y);
-    lv_obj_set_style_text_color(ah_temp_lbl[i], lv_color_hex(C_TEXT), 0);
-    lv_label_set_text(ah_temp_lbl[i], "--");
+  // Hang Control 4 cot (chi hien khi dang in / tam dung):
+  // [huy hieu so extruder] [ban nhiet] [buong in] [cuon nhua - gram]
+  ah_ctrl_box = lv_obj_create(lv_scr_act());
+  lv_obj_set_size(ah_ctrl_box, 220, 50);
+  lv_obj_align(ah_ctrl_box, LV_ALIGN_TOP_MID, 0, 164);
+  lv_obj_set_style_bg_opa(ah_ctrl_box, LV_OPA_TRANSP, 0);
+  lv_obj_set_style_border_width(ah_ctrl_box, 0, 0);
+  lv_obj_set_style_pad_all(ah_ctrl_box, 0, 0);
+  lv_obj_clear_flag(ah_ctrl_box, LV_OBJ_FLAG_SCROLLABLE);
+
+  // Cot 1: icon dau phun (khoi + mui nhon dan xuong), so extruder dang
+  // chay nam trong khoi, khoi to mau theo mau nhua cua slot dang in
+  lv_obj_t* badge = lv_obj_create(ah_ctrl_box);
+  lv_obj_set_size(badge, 22, 18);
+  lv_obj_set_pos(badge, 18, 0);
+  lv_obj_set_style_radius(badge, 5, 0);
+  lv_obj_set_style_bg_color(badge, lv_color_hex(C_TEXT), 0);
+  lv_obj_set_style_border_width(badge, 0, 0);
+  lv_obj_set_style_pad_all(badge, 0, 0);
+  lv_obj_clear_flag(badge, LV_OBJ_FLAG_SCROLLABLE);
+  ah_badge_parts[0] = badge;
+  ah_ctrl_badge_num = lv_label_create(badge);
+  lv_label_set_text(ah_ctrl_badge_num, "1");
+  lv_obj_set_style_text_color(ah_ctrl_badge_num, lv_color_hex(0xFFFFFF), 0);
+  lv_obj_center(ah_ctrl_badge_num);
+  // Mui nhon cua dau phun: 2 bac nho dan o duoi khoi
+  lv_obj_t* tip1 = lv_obj_create(ah_ctrl_box);
+  lv_obj_set_size(tip1, 12, 4);
+  lv_obj_set_pos(tip1, 23, 18);
+  lv_obj_set_style_bg_color(tip1, lv_color_hex(C_TEXT), 0);
+  lv_obj_set_style_border_width(tip1, 0, 0);
+  lv_obj_set_style_pad_all(tip1, 0, 0);
+  lv_obj_clear_flag(tip1, LV_OBJ_FLAG_SCROLLABLE);
+  ah_badge_parts[1] = tip1;
+  lv_obj_t* tip2 = lv_obj_create(ah_ctrl_box);
+  lv_obj_set_size(tip2, 6, 4);
+  lv_obj_set_pos(tip2, 26, 22);
+  lv_obj_set_style_bg_color(tip2, lv_color_hex(C_TEXT), 0);
+  lv_obj_set_style_border_width(tip2, 0, 0);
+  lv_obj_set_style_pad_all(tip2, 0, 0);
+  lv_obj_clear_flag(tip2, LV_OBJ_FLAG_SCROLLABLE);
+  ah_badge_parts[2] = tip2;
+
+  // Cot 2: icon ban nhiet (tam phang + 3 vach nhiet phia tren)
+  lv_obj_t* bed = lv_obj_create(ah_ctrl_box);
+  lv_obj_set_size(bed, 28, 9);
+  lv_obj_set_pos(bed, 70, 17);
+  lv_obj_set_style_radius(bed, 3, 0);
+  lv_obj_set_style_bg_opa(bed, LV_OPA_TRANSP, 0);
+  lv_obj_set_style_border_color(bed, lv_color_hex(C_TEXT), 0);
+  lv_obj_set_style_border_width(bed, 2, 0);
+  lv_obj_set_style_pad_all(bed, 0, 0);
+  lv_obj_clear_flag(bed, LV_OBJ_FLAG_SCROLLABLE);
+  for (int i = 0; i < 3; i++) {
+    lv_obj_t* w = lv_obj_create(ah_ctrl_box);
+    lv_obj_set_size(w, 2, 7);
+    lv_obj_set_pos(w, 74 + i * 8, 6);
+    lv_obj_set_style_bg_color(w, lv_color_hex(C_TEXT), 0);
+    lv_obj_set_style_border_width(w, 0, 0);
+    lv_obj_set_style_pad_all(w, 0, 0);
+    lv_obj_clear_flag(w, LV_OBJ_FLAG_SCROLLABLE);
+  }
+
+  // Cot 3: icon buong in (hop vuong rong)
+  lv_obj_t* chm = lv_obj_create(ah_ctrl_box);
+  lv_obj_set_size(chm, 22, 22);
+  lv_obj_set_pos(chm, 128, 3);
+  lv_obj_set_style_radius(chm, 3, 0);
+  lv_obj_set_style_bg_opa(chm, LV_OPA_TRANSP, 0);
+  lv_obj_set_style_border_color(chm, lv_color_hex(C_TEXT), 0);
+  lv_obj_set_style_border_width(chm, 2, 0);
+  lv_obj_set_style_pad_all(chm, 0, 0);
+  lv_obj_clear_flag(chm, LV_OBJ_FLAG_SCROLLABLE);
+
+  // Cot 4: icon cuon nhua (vong tron ngoai + truc giua)
+  lv_obj_t* spool = lv_obj_create(ah_ctrl_box);
+  lv_obj_set_size(spool, 24, 24);
+  lv_obj_set_pos(spool, 182, 2);
+  lv_obj_set_style_radius(spool, LV_RADIUS_CIRCLE, 0);
+  lv_obj_set_style_bg_opa(spool, LV_OPA_TRANSP, 0);
+  lv_obj_set_style_border_color(spool, lv_color_hex(C_TEXT), 0);
+  lv_obj_set_style_border_width(spool, 2, 0);
+  lv_obj_set_style_pad_all(spool, 0, 0);
+  lv_obj_clear_flag(spool, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_t* hub = lv_obj_create(ah_ctrl_box);
+  lv_obj_set_size(hub, 8, 8);
+  lv_obj_set_pos(hub, 190, 10);
+  lv_obj_set_style_radius(hub, LV_RADIUS_CIRCLE, 0);
+  lv_obj_set_style_bg_color(hub, lv_color_hex(C_TEXT), 0);
+  lv_obj_set_style_border_width(hub, 0, 0);
+  lv_obj_set_style_pad_all(hub, 0, 0);
+  lv_obj_clear_flag(hub, LV_OBJ_FLAG_SCROLLABLE);
+
+  // Hang so nam duoi cac icon
+  for (int i = 0; i < 4; i++) {
+    ah_ctrl_val[i] = lv_label_create(ah_ctrl_box);
+    lv_obj_set_width(ah_ctrl_val[i], 55);
+    lv_obj_set_style_text_align(ah_ctrl_val[i], LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_pos(ah_ctrl_val[i], 2 + i * 55, 30);
+    lv_obj_set_style_text_color(ah_ctrl_val[i], lv_color_hex(C_TEXT), 0);
+    lv_label_set_text(ah_ctrl_val[i], "--");
   }
   ah_btn_box = lv_obj_create(lv_scr_act());
   lv_obj_set_size(ah_btn_box, 220, 40);
-  lv_obj_align(ah_btn_box, LV_ALIGN_TOP_MID, 0, 229);
+  lv_obj_align(ah_btn_box, LV_ALIGN_TOP_MID, 0, 272);
   lv_obj_set_style_bg_opa(ah_btn_box, LV_OPA_TRANSP, 0);
   lv_obj_set_style_border_width(ah_btn_box, 0, 0);
   lv_obj_set_style_pad_all(ah_btn_box, 0, 0);
@@ -464,6 +641,38 @@ static void ah_show_home(void) {
   lv_label_set_text(sl, "Stop");
   lv_obj_set_style_text_color(sl, lv_color_hex(C_RED), 0);
   lv_obj_center(sl);
+  // Hang filament 4 slot: vong tron mau + so slot o giua + loai nhua o duoi
+  // (chi hien khi may co du lieu filament - xem ah_refresh)
+  ah_fil_box = lv_obj_create(lv_scr_act());
+  lv_obj_set_size(ah_fil_box, 220, 46);
+  lv_obj_align(ah_fil_box, LV_ALIGN_TOP_MID, 0, 218);
+  lv_obj_set_style_bg_opa(ah_fil_box, LV_OPA_TRANSP, 0);
+  lv_obj_set_style_border_width(ah_fil_box, 0, 0);
+  lv_obj_set_style_pad_all(ah_fil_box, 0, 0);
+  lv_obj_clear_flag(ah_fil_box, LV_OBJ_FLAG_SCROLLABLE);
+  for (int i = 0; i < 4; i++) {
+    ah_fil_circle[i] = lv_obj_create(ah_fil_box);
+    lv_obj_set_size(ah_fil_circle[i], 26, 26);
+    lv_obj_set_pos(ah_fil_circle[i], 16 + i * 55, 2);
+    lv_obj_set_style_radius(ah_fil_circle[i], LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(ah_fil_circle[i], lv_color_hex(0xE0E0E0), 0);
+    lv_obj_set_style_border_color(ah_fil_circle[i], lv_color_hex(C_TEXT), 0);
+    lv_obj_set_style_border_width(ah_fil_circle[i], 2, 0);
+    lv_obj_set_style_pad_all(ah_fil_circle[i], 0, 0);
+    lv_obj_clear_flag(ah_fil_circle[i], LV_OBJ_FLAG_SCROLLABLE);
+    ah_fil_num[i] = lv_label_create(ah_fil_circle[i]);
+    char nbuf[4];
+    snprintf(nbuf, sizeof(nbuf), "%d", i + 1);
+    lv_label_set_text(ah_fil_num[i], nbuf);
+    lv_obj_set_style_text_color(ah_fil_num[i], lv_color_hex(C_TEXT), 0);
+    lv_obj_center(ah_fil_num[i]);
+    ah_fil_type[i] = lv_label_create(ah_fil_box);
+    lv_obj_set_width(ah_fil_type[i], 55);
+    lv_obj_set_style_text_align(ah_fil_type[i], LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_pos(ah_fil_type[i], 2 + i * 55, 31);
+    lv_obj_set_style_text_color(ah_fil_type[i], lv_color_hex(C_TEXT), 0);
+    lv_label_set_text(ah_fil_type[i], "--");
+  }
   ah_refresh();
 }
 

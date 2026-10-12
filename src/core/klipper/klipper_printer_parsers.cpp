@@ -203,6 +203,33 @@ if (status.containsKey("temperature_sensor cavity"))
     }
 }
 
+void KlipperPrinter::parse_filament(JsonDocument &in)
+{
+    JsonObject status = in["result"]["status"];
+
+    // Snapmaker U1: mau + loai nhua cua 4 slot filament
+    if (status.containsKey("print_task_config"))
+    {
+        JsonArray f_types = status["print_task_config"]["filament_type"];
+        JsonArray f_colors = status["print_task_config"]["filament_color"];
+        JsonArray f_exist = status["print_task_config"]["filament_exist"];
+
+        for (int i = 0; i < 4; i++)
+        {
+            const char *ft = f_types[i];
+            if (ft != NULL)
+            {
+                strncpy(printer_data.filament_types[i], ft, sizeof(printer_data.filament_types[i]) - 1);
+                printer_data.filament_types[i][sizeof(printer_data.filament_types[i]) - 1] = '\0';
+            }
+            unsigned long fc = f_colors[i];
+            printer_data.filament_colors[i] = (unsigned int)(fc & 0xFFFFFF);
+            printer_data.filament_exist[i] = f_exist[i] == true;
+        }
+        printer_data.filament_data_valid = true;
+    }
+}
+
 void KlipperPrinter::parse_state_min(JsonDocument &in, PrinterDataMinimal* data)
 {
     JsonObject status = in["result"]["status"];

@@ -97,6 +97,12 @@ typedef struct _PrinterData {
         float smooth_time;
         int feedrate_mm_per_s;
         PrinterFeatures error_screen_features;
+        // Thong tin filament 4 slot (Snapmaker U1, object print_task_config).
+        // May khong co object nay thi filament_data_valid luon false.
+        char filament_types[4][16];
+        unsigned int filament_colors[4]; // 0xRRGGBB
+        bool filament_exist[4];
+        bool filament_data_valid;
 } PrinterData;
 
 typedef struct {

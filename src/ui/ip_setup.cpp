@@ -58,7 +58,7 @@ static void ip_entry_try_connect()
         }
         else if (klipper_status == KlipperConnectionStatus::ConnectAuthRequired)
         {
-            lv_label_set_text(main_label, "Incorrect authorisation");
+            lv_label_set_text(main_label, "Incorrect authorization");
         }
         else
         {
@@ -580,7 +580,7 @@ void show_ip_entry()
             lv_textarea_set_max_length(port_entry, 5);
             lv_textarea_set_placeholder_text(host_entry, "Klipper host");
             lv_textarea_set_placeholder_text(port_entry, "Port");
-            lv_textarea_set_placeholder_text(auth_entry, "Autorisation key (optional)");
+            lv_textarea_set_placeholder_text(auth_entry, "Authorization key (optional)");
             break;
         case PrinterType::PrinterTypeBambuLocal:
             lv_label_set_text(main_label, "Bambu (Local) Setup");

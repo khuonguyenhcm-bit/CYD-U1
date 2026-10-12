@@ -10,12 +10,9 @@
 #include "macros.h"
 
 void check_if_screen_needs_to_be_disabled(){
-  if (global_config.on_during_print && get_current_printer_data()->state == PrinterState::PrinterStatePrinting){
-    screen_timer_wake();
-    screen_timer_stop();
-  } else {
-    screen_timer_start();
-  }
+  // Man hinh luon sang, khong tu tat
+  screen_timer_wake();
+  screen_timer_stop();
 }
 
 static void on_data_for_screen(void* s, lv_msg_t* m){

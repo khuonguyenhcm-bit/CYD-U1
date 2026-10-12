@@ -186,6 +186,14 @@ bool KlipperPrinter::fetch()
         JsonDocument doc;
         deserializeJson(doc, client.getStream());
         parse_state(doc);
+
+        // Lay them thong tin filament (Snapmaker U1) bang truy van rieng,
+        // moi 5 chu ky 1 lan. May khong co object nay thi bo qua, khong
+        // anh huong du lieu chinh o tren.
+        if ((filament_fetch_counter++ % 5) == 0)
+        {
+            fetch_filament();
+        }
     }
     else
     {
@@ -200,6 +208,19 @@ bool KlipperPrinter::fetch()
     }
 
     return true;
+}
+
+void KlipperPrinter::fetch_filament()
+{
+    HTTPClient client;
+    configure_http_client(client, "/printer/objects/query?print_task_config", true, 600);
+
+    if (client.GET() == 200)
+    {
+        JsonDocument doc;
+        deserializeJson(doc, client.getStream());
+        parse_filament(doc);
+    }
 }
 
 PrinterDataMinimal KlipperPrinter::fetch_min()

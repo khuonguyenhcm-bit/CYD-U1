@@ -115,6 +115,15 @@ void lv_keyboard_text_entry_close(lv_event_t * e){
 
 void lv_create_keyboard_text_entry(lv_event_cb_t keyboard_callback, const char* title, lv_keyboard_mode_t keyboard_mode, lv_coord_t width, uint8_t max_length, const char* fill_text, bool contain_in_panel)
 {
+    // The CYD_SCREEN_*_PX layout constants hold landscape values (320x240)
+    // while this build drives the panel at its native portrait 240x320, so
+    // fullscreen overlays must be sized from the real display resolution.
+    // Sizing them from the constants made the overlay 320px wide, aligned
+    // it off the left edge of the screen and cut off the keyboard's first
+    // column of keys.
+    const lv_coord_t scr_w = lv_disp_get_hor_res(NULL);
+    const lv_coord_t scr_h = lv_disp_get_ver_res(NULL);
+
     lv_obj_t * parent = lv_create_empty_panel(lv_scr_act());
     lv_obj_set_style_bg_opa(parent, LV_OPA_50, 0); 
     lv_obj_align(parent, LV_ALIGN_TOP_RIGHT, 0, 0);
@@ -127,7 +136,13 @@ void lv_create_keyboard_text_entry(lv_event_cb_t keyboard_callback, const char* 
     }
     else
     {
-        lv_obj_set_size(parent, CYD_SCREEN_WIDTH_PX, CYD_SCREEN_HEIGHT_PX);
+        lv_obj_set_size(parent, scr_w, scr_h);
+        lv_obj_align(parent, LV_ALIGN_TOP_LEFT, 0, 0);
+
+        if (width > scr_w - CYD_SCREEN_GAP_PX * 2)
+        {
+            width = scr_w - CYD_SCREEN_GAP_PX * 2;
+        }
     }
 
     if (title != nullptr && keyboard_mode != LV_KEYBOARD_MODE_NUMBER)
@@ -148,6 +163,11 @@ void lv_create_keyboard_text_entry(lv_event_cb_t keyboard_callback, const char* 
 
     lv_obj_t * ta = lv_textarea_create(parent);
     lv_obj_t * keyboard = lv_keyboard_create(parent);
+
+    if (!contain_in_panel)
+    {
+        lv_obj_set_width(keyboard, scr_w);
+    }
 
     if (keyboard_mode == LV_KEYBOARD_MODE_NUMBER)
     {

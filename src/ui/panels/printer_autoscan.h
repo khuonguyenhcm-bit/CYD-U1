@@ -9,7 +9,7 @@
 #define AUTOSCAN_CONNECT_TIMEOUT_MS (3UL * 60UL * 1000UL)  // 3 phut
 #define AUTOSCAN_RETRY_WAIT_MS (3UL * 60UL * 1000UL)  // 3 phut
 #define AUTOSCAN_MAX_TRIES 2
-#define AUTOSCAN_TCP_TIMEOUT_MS 300  // timeout moi IP khi quet
+#define AUTOSCAN_TCP_TIMEOUT_MS 150  // timeout moi IP khi quet (mang LAN phan hoi <10ms)
 
 // Callback khi tim thay printer: nhan IP dang string
 typedef void (*autoscan_found_cb_t)(const char* ip_str);
@@ -18,3 +18,4 @@ void autoscan_init(autoscan_found_cb_t cb);
 void autoscan_notify_state(bool is_connecting);
 void autoscan_loop();
 void autoscan_trigger_now();  // Nguoi dung bam nut Find -> quet ngay
+bool autoscan_is_scanning();  // Task quet co dang chay khong

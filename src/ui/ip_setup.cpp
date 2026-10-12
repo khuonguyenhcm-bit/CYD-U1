@@ -5,6 +5,7 @@
 #include "core/data_setup.h"
 #include "ui_utils.h"
 #include "panels/panel.h"
+#include "panels/printer_autoscan.h"
 #include "macros.h"
 #include "../core/lv_setup.h"
 #include "serial/serial_console.h"
@@ -18,6 +19,216 @@ void show_ip_entry();
 void choose_printer_type();
 
 lv_obj_t * main_label;
+
+// --- Auto-scan on the Klipper setup screen ---
+// The subnet scan runs in its own FreeRTOS task (printer_autoscan), so the
+// found-callback must not touch LVGL from that task: it only stores the IP
+// and raises a flag. An LVGL timer polls the flag back in UI context, fills
+// in the entry fields and runs the normal connection test.
+static lv_obj_t * s_host_entry = NULL;
+static lv_obj_t * s_port_entry = NULL;
+static lv_obj_t * s_find_btn = NULL;
+static lv_obj_t * s_keyboard = NULL;
+static lv_timer_t * s_scan_timer = NULL;
+static char s_found_ip[16] = "";
+static volatile bool s_found_ready = false;
+static bool s_scan_seen_running = false;
+
+static void setup_scan_found_cb(const char* ip_str)
+{
+    strncpy(s_found_ip, ip_str, sizeof(s_found_ip) - 1);
+    s_found_ip[sizeof(s_found_ip) - 1] = '\0';
+    s_found_ready = true;
+}
+
+// The connection test itself. The stock screen only ran this from the
+// keyboard's OK key; it is shared here with the Connect button and the
+// auto-scan poll below.
+static void ip_entry_try_connect()
+{
+    PrinterType type = global_config.printer_config[global_config.printer_index].printer_type;
+
+    if (type == PrinterType::PrinterTypeKlipper)
+    {
+        KlipperConnectionStatus klipper_status = connection_test_klipper(&global_config.printer_config[global_config.printer_index]);
+        if (klipper_status == KlipperConnectionStatus::ConnectOk)
+        {
+            global_config.printer_config[global_config.printer_index].setup_complete = true;
+            write_global_config();
+        }
+        else if (klipper_status == KlipperConnectionStatus::ConnectAuthRequired)
+        {
+            lv_label_set_text(main_label, "Incorrect authorisation");
+        }
+        else
+        {
+            lv_label_set_text(main_label, "Failed to connect");
+        }
+    }
+    else if (type == PrinterType::PrinterTypeBambuLocal)
+    {
+        BambuConnectionStatus bambu_status = connection_test_bambu(&global_config.printer_config[global_config.printer_index]);
+        if (bambu_status == BambuConnectionStatus::BambuConnectOk)
+        {
+            global_config.printer_config[global_config.printer_index].setup_complete = true;
+            write_global_config();
+        }
+        else if (bambu_status == BambuConnectionStatus::BambuConnectSNFail)
+        {
+            lv_label_set_text(main_label, "Incorrect serial number");
+        }
+        else
+        {
+            lv_label_set_text(main_label, "Incorrect IP/Access code");
+        }
+    }
+    else if (type == PrinterType::PrinterTypeOctoprint)
+    {
+        OctoConnectionStatus octo_status = connection_test_octoprint(&global_config.printer_config[global_config.printer_index]);
+        if (octo_status == OctoConnectionStatus::OctoConnectOk)
+        {
+            global_config.printer_config[global_config.printer_index].setup_complete = true;
+            write_global_config();
+        }
+        else if (octo_status == OctoConnectionStatus::OctoConnectKeyFail)
+        {
+            lv_label_set_text(main_label, "Incorrect API key");
+        }
+        else
+        {
+            lv_label_set_text(main_label, "Failed to connect");
+        }
+    }
+}
+
+// Tapping a button defocuses the active text entry, and the stock focus
+// handler hides the keyboard on defocus. Bring it back after button taps
+// so manual entry stays possible while a scan runs.
+static void ip_entry_show_keyboard()
+{
+    if (s_keyboard == NULL || s_host_entry == NULL)
+    {
+        return;
+    }
+    lv_keyboard_set_mode(s_keyboard, LV_KEYBOARD_MODE_USER_1);
+    lv_keyboard_set_textarea(s_keyboard, s_host_entry);
+    lv_obj_clear_flag(s_keyboard, LV_OBJ_FLAG_HIDDEN);
+}
+
+static void btn_connect(lv_event_t * e)
+{
+    (void)e;
+    ip_entry_try_connect();
+    if (global_config.printer_config[global_config.printer_index].setup_complete)
+    {
+        lv_label_set_text(main_label, "Connected!");
+    }
+    ip_entry_show_keyboard();
+}
+
+static void scan_timer_stop()
+{
+    if (s_scan_timer != NULL)
+    {
+        lv_timer_del(s_scan_timer);
+        s_scan_timer = NULL;
+    }
+    if (s_find_btn != NULL)
+    {
+        lv_obj_clear_state(s_find_btn, LV_STATE_DISABLED);
+    }
+}
+
+static void scan_poll_timer_cb(lv_timer_t * timer)
+{
+    (void)timer;
+
+    if (s_found_ready)
+    {
+        s_found_ready = false;
+        scan_timer_stop();
+
+        PrinterConfiguration * cfg = &global_config.printer_config[global_config.printer_index];
+        strncpy(cfg->printer_host, s_found_ip, sizeof(cfg->printer_host) - 1);
+        cfg->printer_host[sizeof(cfg->printer_host) - 1] = '\0';
+        cfg->ip_configured = true;
+        cfg->klipper_port = AUTOSCAN_PORT;
+
+        if (s_host_entry != NULL)
+        {
+            lv_textarea_set_text(s_host_entry, s_found_ip);
+        }
+        if (s_port_entry != NULL)
+        {
+            lv_textarea_set_text(s_port_entry, "7125");
+        }
+
+        char buff[48];
+        snprintf(buff, sizeof(buff), "Found printer: %s", s_found_ip);
+        lv_label_set_text(main_label, buff);
+
+        ip_entry_try_connect();
+        if (cfg->setup_complete)
+        {
+            lv_label_set_text(main_label, "Connected!");
+        }
+        ip_entry_show_keyboard();
+        return;
+    }
+
+    if (autoscan_is_scanning())
+    {
+        s_scan_seen_running = true;
+    }
+    else if (s_scan_seen_running)
+    {
+        // Scan task finished without finding a printer
+        scan_timer_stop();
+        lv_label_set_text(main_label, "Printer not found - enter IP manually");
+        ip_entry_show_keyboard();
+    }
+}
+
+static void btn_find_printer(lv_event_t * e)
+{
+    (void)e;
+    s_found_ready = false;
+    s_found_ip[0] = '\0';
+    s_scan_seen_running = false;
+
+    if (s_scan_timer != NULL)
+    {
+        lv_timer_del(s_scan_timer);
+        s_scan_timer = NULL;
+    }
+
+    autoscan_init(setup_scan_found_cb);
+    autoscan_trigger_now();
+
+    lv_label_set_text(main_label, "Scanning for printer...");
+    if (s_find_btn != NULL)
+    {
+        lv_obj_add_state(s_find_btn, LV_STATE_DISABLED);
+    }
+    s_scan_timer = lv_timer_create(scan_poll_timer_cb, 500, NULL);
+    ip_entry_show_keyboard();
+}
+
+// Fires when the setup screen is torn down: stop the poll timer and drop the
+// object pointers so nothing references deleted LVGL objects.
+static void ip_entry_deleted_cb(lv_event_t * e)
+{
+    (void)e;
+    if (s_scan_timer != NULL)
+    {
+        lv_timer_del(s_scan_timer);
+        s_scan_timer = NULL;
+    }
+    s_host_entry = NULL;
+    s_port_entry = NULL;
+    s_find_btn = NULL;
+    s_keyboard = NULL;
+}
 
 /* Create a custom keyboard to allow hostnames or ip addresses (a-z, 0 - 9, and -) */
 static const char * kb_map[] = {
@@ -80,15 +291,20 @@ void serial_check_connection()
 }
 
 void switch_printer_init() {
+    // Use the real display resolution: the CYD_SCREEN_*_PX constants hold
+    // landscape values (320x240) but the panel runs portrait 240x320.
+    const lv_coord_t scr_w = lv_disp_get_hor_res(NULL);
+    const lv_coord_t scr_h = lv_disp_get_ver_res(NULL);
+
     lv_obj_t * parent = lv_create_empty_panel(lv_scr_act());
     lv_obj_set_style_bg_opa(parent, LV_OPA_100, 0); 
-    lv_obj_align(parent, LV_ALIGN_TOP_RIGHT, 0, 0);
-    lv_obj_set_size(parent, CYD_SCREEN_WIDTH_PX, CYD_SCREEN_HEIGHT_PX);
+    lv_obj_align(parent, LV_ALIGN_TOP_LEFT, 0, 0);
+    lv_obj_set_size(parent, scr_w, scr_h);
     lv_layout_flex_column(parent);
 
     lv_obj_set_size(lv_create_empty_panel(parent), 0, 0);
 
-    auto width = CYD_SCREEN_WIDTH_PX - CYD_SCREEN_GAP_PX * 2;
+    auto width = scr_w - CYD_SCREEN_GAP_PX * 2;
 
     lv_obj_t * btn = lv_btn_create(parent);
     lv_obj_set_size(btn, width, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
@@ -186,59 +402,7 @@ static void keyboard_event_ip_entry(lv_event_t * e) {
     }
     else if (code == LV_EVENT_READY) 
     {
-        PrinterType type = global_config.printer_config[global_config.printer_index].printer_type;
-
-        if (type == PrinterType::PrinterTypeKlipper)
-        {
-            KlipperConnectionStatus klipper_status = connection_test_klipper(&global_config.printer_config[global_config.printer_index]);
-            if (klipper_status == KlipperConnectionStatus::ConnectOk)
-            {
-                global_config.printer_config[global_config.printer_index].setup_complete = true;
-                write_global_config();
-            }
-            else if (klipper_status == KlipperConnectionStatus::ConnectAuthRequired)
-            {
-                lv_label_set_text(main_label, "Incorrect authorisation");
-            }
-            else
-            {
-                lv_label_set_text(main_label, "Failed to connect");
-            }
-        }
-        else if (type == PrinterType::PrinterTypeBambuLocal)
-        {
-            BambuConnectionStatus bambu_status = connection_test_bambu(&global_config.printer_config[global_config.printer_index]);
-            if (bambu_status == BambuConnectionStatus::BambuConnectOk)
-            {
-                global_config.printer_config[global_config.printer_index].setup_complete = true;
-                write_global_config();
-            }
-            else if (bambu_status == BambuConnectionStatus::BambuConnectSNFail)
-            {
-                lv_label_set_text(main_label, "Incorrect serial number");
-            }
-            else
-            {
-                lv_label_set_text(main_label, "Incorrect IP/Access code");
-            }
-        }
-        else if (type == PrinterType::PrinterTypeOctoprint)
-        {
-            OctoConnectionStatus octo_status = connection_test_octoprint(&global_config.printer_config[global_config.printer_index]);
-            if (octo_status == OctoConnectionStatus::OctoConnectOk)
-            {
-                global_config.printer_config[global_config.printer_index].setup_complete = true;
-                write_global_config();
-            }
-            else if (octo_status == OctoConnectionStatus::OctoConnectKeyFail)
-            {
-                lv_label_set_text(main_label, "Incorrect API key");
-            }
-            else
-            {
-                lv_label_set_text(main_label, "Failed to connect");
-            }
-        }
+        ip_entry_try_connect();
     }
 }
 
@@ -246,20 +410,28 @@ void show_ip_entry()
 {
     lv_obj_clean(lv_scr_act());
 
+    // Use the real display resolution: the CYD_SCREEN_*_PX constants hold
+    // landscape values (320x240) but the panel runs portrait 240x320, so
+    // sizing this screen from the constants pushes the keyboard and the
+    // entry rows off the edge of the screen.
+    const lv_coord_t scr_w = lv_disp_get_hor_res(NULL);
+    const lv_coord_t scr_h = lv_disp_get_ver_res(NULL);
+
     lv_obj_t * root = lv_create_empty_panel(lv_scr_act());
-    lv_obj_set_size(root, CYD_SCREEN_WIDTH_PX, CYD_SCREEN_HEIGHT_PX);
+    lv_obj_set_size(root, scr_w, scr_h);
     lv_layout_flex_column(root);
     lv_obj_clear_flag(root, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_event_cb(root, ip_entry_deleted_cb, LV_EVENT_DELETE, NULL);
 
     lv_obj_t * top_root = lv_create_empty_panel(root);
-    lv_obj_set_width(top_root, CYD_SCREEN_WIDTH_PX);
+    lv_obj_set_width(top_root, scr_w);
     lv_layout_flex_column(top_root);
     lv_obj_set_flex_grow(top_root, 1);
     lv_obj_set_style_pad_all(top_root, CYD_SCREEN_GAP_PX, 0);
     lv_obj_clear_flag(top_root, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t * button_row = lv_create_empty_panel(top_root);
-    lv_obj_set_size(button_row, CYD_SCREEN_WIDTH_PX - CYD_SCREEN_GAP_PX * 2, LV_SIZE_CONTENT);
+    lv_obj_set_size(button_row, scr_w - CYD_SCREEN_GAP_PX * 2, LV_SIZE_CONTENT);
     lv_layout_flex_row(button_row);
 
     lv_obj_t * button_back = lv_btn_create(button_row);
@@ -286,7 +458,7 @@ void show_ip_entry()
     }
 
     lv_obj_t * ip_row = lv_create_empty_panel(top_root);
-    lv_obj_set_size(ip_row, CYD_SCREEN_WIDTH_PX - CYD_SCREEN_GAP_PX * 2, LV_SIZE_CONTENT);
+    lv_obj_set_size(ip_row, scr_w - CYD_SCREEN_GAP_PX * 2, LV_SIZE_CONTENT);
     lv_layout_flex_row(ip_row);
 
     lv_obj_t * host_entry = lv_textarea_create(ip_row);
@@ -300,7 +472,7 @@ void show_ip_entry()
     lv_obj_set_flex_grow(port_entry, 1);
 
     lv_obj_t * auth_row = lv_create_empty_panel(top_root);
-    lv_obj_set_size(auth_row, CYD_SCREEN_WIDTH_PX - CYD_SCREEN_GAP_PX * 2, LV_SIZE_CONTENT);
+    lv_obj_set_size(auth_row, scr_w - CYD_SCREEN_GAP_PX * 2, LV_SIZE_CONTENT);
     lv_layout_flex_row(auth_row);
 
     lv_obj_t * auth_entry = lv_textarea_create(auth_row);
@@ -308,6 +480,41 @@ void show_ip_entry()
     lv_obj_add_flag(auth_entry, LV_OBJ_FLAG_USER_2);
     lv_obj_set_flex_grow(auth_entry, 1);
     lv_textarea_set_max_length(auth_entry, 32);
+
+    s_host_entry = host_entry;
+    s_port_entry = port_entry;
+
+    // Action row: Find Printer (Klipper only - scans the subnet for
+    // Moonraker instead of typing the IP) next to an explicit Connect
+    // button for manual entry. The stock screen had no Connect button:
+    // the connection test only ran from the keyboard's OK key.
+    if (global_config.printer_config[global_config.printer_index].printer_type != PrinterType::PrinterTypeKlipperSerial)
+    {
+        lv_obj_t * action_row = lv_create_empty_panel(top_root);
+        lv_obj_set_size(action_row, scr_w - CYD_SCREEN_GAP_PX * 2, LV_SIZE_CONTENT);
+        lv_layout_flex_row(action_row);
+
+        if (global_config.printer_config[global_config.printer_index].printer_type == PrinterType::PrinterTypeKlipper)
+        {
+            s_find_btn = lv_btn_create(action_row);
+            lv_obj_set_flex_grow(s_find_btn, 1);
+            lv_obj_set_height(s_find_btn, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX / 2);
+            lv_obj_add_event_cb(s_find_btn, btn_find_printer, LV_EVENT_CLICKED, NULL);
+
+            lv_obj_t * find_label = lv_label_create(s_find_btn);
+            lv_label_set_text(find_label, LV_SYMBOL_WIFI " Find");
+            lv_obj_center(find_label);
+        }
+
+        lv_obj_t * connect_btn = lv_btn_create(action_row);
+        lv_obj_set_flex_grow(connect_btn, 1);
+        lv_obj_set_height(connect_btn, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX / 2);
+        lv_obj_add_event_cb(connect_btn, btn_connect, LV_EVENT_CLICKED, NULL);
+
+        lv_obj_t * connect_label = lv_label_create(connect_btn);
+        lv_label_set_text(connect_label, "Connect");
+        lv_obj_center(connect_label);
+    }
 
     if (global_config.printer_config[global_config.printer_index].ip_configured)
     {
@@ -325,10 +532,16 @@ void show_ip_entry()
             lv_textarea_set_text(port_entry, "");
             global_config.printer_config[global_config.printer_index].klipper_port = 0;
         }
-        else
+        else if (global_config.printer_config[global_config.printer_index].printer_type == PrinterType::PrinterTypeOctoprint)
         {
             lv_textarea_set_text(port_entry, "80");
             global_config.printer_config[global_config.printer_index].klipper_port = 80;
+        }
+        else
+        {
+            // Klipper talks to Moonraker directly on 7125
+            lv_textarea_set_text(port_entry, "7125");
+            global_config.printer_config[global_config.printer_index].klipper_port = 7125;
         }
         
         global_config.printer_config[global_config.printer_index].printer_host[0] = '\0';
@@ -350,6 +563,8 @@ void show_ip_entry()
     lv_obj_add_event_cb(auth_entry, auth_update, LV_EVENT_VALUE_CHANGED, NULL);
 
     lv_obj_t * keyboard = lv_keyboard_create(root);
+    s_keyboard = keyboard;
+    lv_obj_set_width(keyboard, scr_w);
     lv_keyboard_set_map(keyboard, LV_KEYBOARD_MODE_USER_1, kb_map, kb_ctrl);
     lv_keyboard_set_map(keyboard, LV_KEYBOARD_MODE_USER_2, hex_numpad_map, hex_numpad_ctrl);
     lv_obj_add_event_cb(host_entry, keyboard_event_ip_entry, LV_EVENT_ALL, keyboard);
@@ -395,7 +610,7 @@ void show_ip_entry()
             lv_obj_del(keyboard);
 
             lv_obj_t * bottom_root = lv_create_empty_panel(top_root);
-            lv_obj_set_width(bottom_root, CYD_SCREEN_WIDTH_PX);
+            lv_obj_set_width(bottom_root, scr_w);
             lv_obj_set_flex_grow(bottom_root, 1);
             
             label = lv_label_create(bottom_root);
@@ -444,7 +659,7 @@ static inline void create_printer_type_button(lv_obj_t * root, const char * labe
     }
 
     lv_obj_t * btn = lv_btn_create(root);
-    lv_obj_set_size(btn, CYD_SCREEN_WIDTH_PX - CYD_SCREEN_GAP_PX * 2, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
+    lv_obj_set_size(btn, lv_disp_get_hor_res(NULL) - CYD_SCREEN_GAP_PX * 2, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
     lv_obj_add_event_cb(btn, event, LV_EVENT_CLICKED, NULL);
 
     lv_obj_t * label_obj = lv_label_create(btn);
@@ -460,7 +675,7 @@ void choose_printer_type()
     global_config.printer_config[global_config.printer_index].auth_configured = false;
 
     lv_obj_t * root = lv_create_empty_panel(lv_scr_act());
-    lv_obj_set_size(root, CYD_SCREEN_WIDTH_PX, CYD_SCREEN_HEIGHT_PX);
+    lv_obj_set_size(root, lv_disp_get_hor_res(NULL), lv_disp_get_ver_res(NULL));
     lv_layout_flex_column(root);
     lv_obj_set_flex_grow(root, 1);
     lv_obj_set_style_pad_all(root, CYD_SCREEN_GAP_PX, 0);

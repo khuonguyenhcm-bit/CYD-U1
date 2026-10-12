@@ -52,20 +52,27 @@ static void scan_task(void* param) {
   IPAddress local = WiFi.localIP();
   IPAddress mask = WiFi.subnetMask();
   uint32_t net = (uint32_t)local & (uint32_t)mask;
+  int own_host = local[3];
+  bool found = false;
 
-  // Chi ho tro /24 (255.255.255.0) - pho bien nhat
-  for (int host = 1; host < 255; host++) {
-    uint32_t ip_raw = net | host;
-    IPAddress ip(ip_raw);
-    if (ip == local) continue;
-    char ip_str[16];
-    snprintf(ip_str, sizeof(ip_str), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
-    if (is_moonraker(ip_str)) {
-      if (s_cb) s_cb(ip_str);
-      break;
+  // Chi ho tro /24 (255.255.255.0) - pho bien nhat.
+  // Quet tu IP cua minh lan ra hai phia thay vi tuan tu 1 -> 254: may in
+  // thuong nam gan trong cung dai DHCP nen tim thay sau vai IP dau.
+  for (int d = 1; d < 255 && !found; d++) {
+    for (int s = 0; s < 2 && !found; s++) {
+      int host = (s == 0) ? own_host + d : own_host - d;
+      if (host < 1 || host > 254) continue;
+      uint32_t ip_raw = net | (uint32_t)host;
+      IPAddress ip(ip_raw);
+      char ip_str[16];
+      snprintf(ip_str, sizeof(ip_str), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+      if (is_moonraker(ip_str)) {
+        if (s_cb) s_cb(ip_str);
+        found = true;
+      }
+      // Nhuong CPU cho task khac
+      vTaskDelay(1);
     }
-    // Nhuong CPU cho task khac
-    vTaskDelay(1);
   }
   s_scan_task_running = false;
   vTaskDelete(NULL);
@@ -93,6 +100,10 @@ void autoscan_loop() {
   s_tries_left--;
   s_last_scan = now;
   xTaskCreate(scan_task, "autoscan", 8192, NULL, 1, NULL);
+}
+
+bool autoscan_is_scanning() {
+  return s_scan_task_running;
 }
 
 // Nguoi dung bam nut Find -> quet ngay lap tuc, khong doi het 3 phut

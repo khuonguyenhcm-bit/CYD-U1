@@ -41,8 +41,13 @@ static void btn_no_reuse_password(lv_event_t * e)
 }
 
 void ask_reuse_password(const char * ssid){
+    // Use the real display resolution: the CYD_SCREEN_*_PX constants hold
+    // landscape values (320x240) but the panel runs portrait 240x320.
+    const lv_coord_t scr_w = lv_disp_get_hor_res(NULL);
+    const lv_coord_t scr_h = lv_disp_get_ver_res(NULL);
+
     lv_obj_t * root = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(root, CYD_SCREEN_WIDTH_PX - CYD_SCREEN_GAP_PX * 2, CYD_SCREEN_HEIGHT_PX - CYD_SCREEN_GAP_PX * 2);
+    lv_obj_set_size(root, scr_w - CYD_SCREEN_GAP_PX * 2, scr_h - CYD_SCREEN_GAP_PX * 2);
     lv_obj_align(root, LV_ALIGN_CENTER, 0, 0);
     lv_layout_flex_column(root, LV_FLEX_ALIGN_SPACE_BETWEEN);
 
@@ -116,7 +121,7 @@ static void wifi_btn_skip_setup(lv_event_t * e){
 static void wifi_btn_settings(lv_event_t * e){
     lv_obj_clean(lv_scr_act());
     lv_obj_t * panel = lv_create_empty_panel(lv_scr_act());
-    lv_obj_set_size(panel, CYD_SCREEN_WIDTH_PX, CYD_SCREEN_HEIGHT_PX);
+    lv_obj_set_size(panel, lv_disp_get_hor_res(NULL), lv_disp_get_ver_res(NULL));
     lv_layout_flex_column(panel);
 
     lv_obj_t * btn = lv_btn_create(panel);
@@ -173,13 +178,19 @@ void wifi_init_inner(){
 
     lv_obj_clean(lv_scr_act());
 
+    // Use the real display resolution: the CYD_SCREEN_*_PX constants hold
+    // landscape values (320x240) but the panel runs portrait 240x320, so
+    // sizing this screen from the constants pushes buttons off the edge.
+    const lv_coord_t scr_w = lv_disp_get_hor_res(NULL);
+    const lv_coord_t scr_h = lv_disp_get_ver_res(NULL);
+
     lv_obj_t * root = lv_create_empty_panel(lv_scr_act());
-    lv_obj_set_size(root, CYD_SCREEN_WIDTH_PX, CYD_SCREEN_HEIGHT_PX);
+    lv_obj_set_size(root, scr_w, scr_h);
     lv_layout_flex_column(root);
     lv_obj_set_style_pad_all(root, CYD_SCREEN_GAP_PX, 0);
 
     lv_obj_t * top_row = lv_create_empty_panel(root);
-    lv_obj_set_size(top_row, CYD_SCREEN_WIDTH_PX - CYD_SCREEN_GAP_PX * 2, LV_SIZE_CONTENT);
+    lv_obj_set_size(top_row, scr_w - CYD_SCREEN_GAP_PX * 2, LV_SIZE_CONTENT);
     lv_layout_flex_row(top_row);
 
     label = lv_label_create(top_row);
@@ -219,7 +230,7 @@ void wifi_init_inner(){
     lv_obj_center(label);
 
     lv_obj_t * list = lv_list_create(root);
-    lv_obj_set_width(list, CYD_SCREEN_WIDTH_PX - CYD_SCREEN_GAP_PX * 2);
+    lv_obj_set_width(list, scr_w - CYD_SCREEN_GAP_PX * 2);
     lv_obj_set_flex_grow(list, 1);
 
     int n = WiFi.scanNetworks();

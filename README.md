@@ -124,6 +124,7 @@ Redo the touchscreen calibration: with the display powered on, **hold BOOT for 8
 ## Version History
 
 ### v2.0.1
+- **Active extruder tracking**: the hotend badge now follows the printer's reported active extruder, so it switches correctly during toolchanges on multi-color prints (thanks Rich!)
 - **True U1 filament colors**: the filament row and the hotend icon now snap to the closest color from the U1's own 22-color palette (sampled from the printer's Filament Details screen) instead of approximating — pale cyan, pinks and reds now display correctly
 - **Empty slots**: a slot with no filament now shows as a circle with a diagonal slash and an "Empty" label
 

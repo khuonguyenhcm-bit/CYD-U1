@@ -81,6 +81,7 @@ typedef struct _PrinterData {
         char* popup_message;
         float temperatures[10];
         float target_temperatures[10];
+        int active_extruder; // 0..3 theo toolhead.extruder, -1 neu khong doc duoc
         float position[3];
         float elapsed_time_s;
         float printed_time_s;

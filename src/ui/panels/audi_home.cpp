@@ -375,22 +375,27 @@ static void ah_refresh(void) {
       snprintf(ib, sizeof(ib), "L%d/%d %s", d->current_layer, d->total_layers, tb);
     else snprintf(ib, sizeof(ib), "%s left", tb);
     lv_label_set_text(ah_info, ib);
-    // Extruder dang chay: dau phun co target cao nhat.
-    // Neu khong dau nao dang gia nhiet thi lay dau nong nhat.
-    ah_active_dot = -1;
-    float max_t = 50.0f;
-    for (int i = 0; i < 4; i++) {
-      if (d->target_temperatures[i+1] > max_t) {
-        max_t = d->target_temperatures[i+1];
-        ah_active_dot = i;
-      }
-    }
-    if (ah_active_dot < 0) {
-      float best = -1.0f;
+    // Extruder dang chay: lay truc tiep tu extruder thuc te May in bao qua
+    // Moonraker (toolhead.extruder) -> khop ngay ca khi doi dau giua chung.
+    // May khac / khong doc duoc (-1) thi fallback cach cu: dau co target
+    // cao nhat, neu khong dau nao dang gia nhiet thi lay dau nong nhat.
+    ah_active_dot = d->active_extruder;
+    if (ah_active_dot < 0 || ah_active_dot > 3) {
+      ah_active_dot = -1;
+      float max_t = 50.0f;
       for (int i = 0; i < 4; i++) {
-        if (d->temperatures[i+1] > best) {
-          best = d->temperatures[i+1];
+        if (d->target_temperatures[i+1] > max_t) {
+          max_t = d->target_temperatures[i+1];
           ah_active_dot = i;
+        }
+      }
+      if (ah_active_dot < 0) {
+        float best = -1.0f;
+        for (int i = 0; i < 4; i++) {
+          if (d->temperatures[i+1] > best) {
+            best = d->temperatures[i+1];
+            ah_active_dot = i;
+          }
         }
       }
     }

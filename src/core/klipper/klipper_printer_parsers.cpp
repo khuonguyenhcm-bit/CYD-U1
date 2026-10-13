@@ -76,6 +76,19 @@ if (status.containsKey("temperature_sensor cavity"))
         {
             const char *homed_axis = status["toolhead"]["homed_axes"];
             printer_data.homed_axis = strcmp(homed_axis, "xyz") == 0;
+            // Extruder dang hoat dong that: "extruder".."extruder3" -> 0..3
+            printer_data.active_extruder = -1;
+            const char *active_ext = status["toolhead"]["extruder"];
+            if (active_ext != NULL && strncmp(active_ext, "extruder", 8) == 0)
+            {
+                if (active_ext[8] == '\0') printer_data.active_extruder = 0;
+                else
+                {
+                    int n = active_ext[8] - '0';
+                    if (n >= 1 && n <= 3 && active_ext[9] == '\0')
+                        printer_data.active_extruder = n;
+                }
+            }
         }
 
         if (status.containsKey("gcode_move"))

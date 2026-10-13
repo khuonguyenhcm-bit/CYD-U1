@@ -36,6 +36,7 @@ static lv_obj_t* ah_fil_box;
 static lv_obj_t* ah_fil_circle[4];
 static lv_obj_t* ah_fil_num[4];
 static lv_obj_t* ah_fil_type[4];
+static lv_obj_t* ah_fil_slash[4];  // gach cheo ve khi slot trong (het nhua)
 static int ah_active_dot = -1;
 static bool ah_bg_dark = false;
 static lv_obj_t* ah_btn_box;
@@ -47,30 +48,54 @@ static int ah_phase = 0;
 // Chuan hoa mau nhua ve bang mau chuan theo sac mau (hue), giong cach
 // man hinh zin cua may in hien thi (vd hong magenta -> do, cyan nhat
 // giu dung cyan chu khong bi keo ve vang nhu cach tinh theo do sang).
+// Chuan hoa mau nhua: so khop mau GAN NHAT voi bang 22 mau goc tren man
+// hinh U1 (man "Filament Details"). Bang mau duoc doc truc tiep tu anh chup
+// man zin (2026-10-13), hieu chinh can bang trang theo vong mau trang.
+// Chuan hon han cach doan theo hue cu (cyan nhat tung bi keo ve vang,
+// do hong bi keo ve do tuoi...). Khoang cach mau co trong so (redmean).
+struct AhPalColor { unsigned char r, g, b; };
+static const AhPalColor AH_U1_PALETTE[] = {
+  {0x02, 0x08, 0x12},  // den
+  {0xF5, 0xF5, 0xF5},  // trang
+  {0xE7, 0xF3, 0xF2},  // xanh nhat
+  {0xB4, 0xCC, 0xDF},  // xanh xam nhat
+  {0xD4, 0x9A, 0x6B},  // nau
+  {0xFF, 0xEF, 0xA4},  // vang nhat
+  {0xFF, 0xDA, 0x3F},  // vang gold
+  {0xFF, 0xF8, 0x45},  // vang tuoi
+  {0xD6, 0xEB, 0xBC},  // xanh mint
+  {0x72, 0xE9, 0x51},  // xanh la sang
+  {0x57, 0xB6, 0x48},  // xanh la
+  {0x6B, 0xE3, 0xF2},  // xanh da troi
+  {0x6D, 0xEF, 0xE2},  // cyan
+  {0x1F, 0x6A, 0xF7},  // xanh duong
+  {0x15, 0x4D, 0xCD},  // xanh duong dam
+  {0x5F, 0x65, 0xFA},  // chi
+  {0x93, 0x1E, 0xF1},  // tim
+  {0xFD, 0x3C, 0x63},  // do hong
+  {0xFF, 0x6F, 0x82},  // hong
+  {0xF9, 0x48, 0x2D},  // do
+  {0xFF, 0xA2, 0x2B},  // cam
+  {0xFF, 0x62, 0x20},  // cam do
+};
 static unsigned int ah_snap_color(unsigned int c) {
   int r = (c >> 16) & 0xFF, g = (c >> 8) & 0xFF, b = c & 0xFF;
-  int mx = r > g ? (r > b ? r : b) : (g > b ? g : b);
-  int mn = r < g ? (r < b ? r : b) : (g < b ? g : b);
-  int d = mx - mn;
-  // Mau gan nhu khong co sac (trang / xam / den): xet theo do sang
-  if (d < 26) {
-    if (mx > 216) return 0xFFFFFF;
-    if (mx < 64) return 0x000000;
-    return 0x808080;
+  unsigned int best = 0x808080;
+  long best_d = 0x7FFFFFFFL;
+  for (unsigned i = 0; i < sizeof(AH_U1_PALETTE) / sizeof(AH_U1_PALETTE[0]); i++) {
+    int dr = r - AH_U1_PALETTE[i].r;
+    int dg = g - AH_U1_PALETTE[i].g;
+    int db = b - AH_U1_PALETTE[i].b;
+    int rm = (r + AH_U1_PALETTE[i].r) / 2;
+    long d = (long)(2 + rm / 128) * dr * dr + 4L * dg * dg +
+             (long)(2 + (255 - rm) / 128) * db * db;
+    if (d < best_d) {
+      best_d = d;
+      best = ((unsigned int)AH_U1_PALETTE[i].r << 16) |
+             ((unsigned int)AH_U1_PALETTE[i].g << 8) | AH_U1_PALETTE[i].b;
+    }
   }
-  float h;
-  if (mx == r) h = 60.0f * ((float)(g - b) / d);
-  else if (mx == g) h = 60.0f * (2.0f + (float)(b - r) / d);
-  else h = 60.0f * (4.0f + (float)(r - g) / d);
-  if (h < 0) h += 360.0f;
-  if (h >= 330.0f || h < 15.0f) return 0xE53935;          // do
-  if (h < 45.0f) return mx < 128 ? 0x6D4C41 : 0xFB8C00;  // nau / cam
-  if (h < 75.0f) return 0xFDD835;                        // vang
-  if (h < 165.0f) return 0x43A047;                       // xanh la
-  if (h < 200.0f) return 0x00BCD4;                       // cyan
-  if (h < 255.0f) return 0x1E88E5;                       // xanh duong
-  if (h < 290.0f) return 0x8E24AA;                       // tim
-  return 0xEC407A;                                       // hong
+  return best;
 }
 
 static void ah_show_frame(void) {
@@ -421,20 +446,38 @@ static void ah_refresh(void) {
     if (show_fil) lv_obj_clear_flag(ah_fil_box, LV_OBJ_FLAG_HIDDEN);
     else lv_obj_add_flag(ah_fil_box, LV_OBJ_FLAG_HIDDEN);
     if (show_fil) {
+      // - Khong co du lieu: vong xam + "--" (nhu cu)
+      // - Slot trong (het nhua): vong trong suot + gach cheo + "Empty"
+      // - Co nhua: vong mau (so khop palette U1) + so slot + loai nhua
       for (int i = 0; i < 4; i++) {
-        if (!d->filament_exist[i] || d->filament_types[i][0] == '\0') {
+        if (d->filament_types[i][0] == '\0') {
+          lv_obj_set_style_bg_opa(ah_fil_circle[i], LV_OPA_COVER, 0);
           lv_obj_set_style_bg_color(ah_fil_circle[i], lv_color_hex(0xE0E0E0), 0);
+          lv_obj_set_style_border_color(ah_fil_circle[i], lv_color_hex(C_TEXT), 0);
           lv_obj_set_style_text_color(ah_fil_num[i], lv_color_hex(0x9E9E9E), 0);
+          lv_obj_clear_flag(ah_fil_num[i], LV_OBJ_FLAG_HIDDEN);
+          lv_obj_add_flag(ah_fil_slash[i], LV_OBJ_FLAG_HIDDEN);
           lv_obj_set_style_text_color(ah_fil_type[i], lv_color_hex(0x9E9E9E), 0);
           lv_label_set_text(ah_fil_type[i], "--");
+        } else if (!d->filament_exist[i]) {
+          lv_obj_set_style_bg_opa(ah_fil_circle[i], LV_OPA_TRANSP, 0);
+          lv_obj_set_style_border_color(ah_fil_circle[i], lv_color_hex(0x9E9E9E), 0);
+          lv_obj_add_flag(ah_fil_num[i], LV_OBJ_FLAG_HIDDEN);
+          lv_obj_clear_flag(ah_fil_slash[i], LV_OBJ_FLAG_HIDDEN);
+          lv_obj_set_style_text_color(ah_fil_type[i], lv_color_hex(0x9E9E9E), 0);
+          lv_label_set_text(ah_fil_type[i], "Empty");
         } else {
           unsigned int c = ah_snap_color(d->filament_colors[i]);
+          lv_obj_set_style_bg_opa(ah_fil_circle[i], LV_OPA_COVER, 0);
           lv_obj_set_style_bg_color(ah_fil_circle[i], lv_color_hex(c), 0);
+          lv_obj_set_style_border_color(ah_fil_circle[i], lv_color_hex(C_TEXT), 0);
           // Nen sang thi so mau den, nen toi thi so mau trang cho de doc
           int lum = (int)(((c >> 16) & 0xFF) * 299 + ((c >> 8) & 0xFF) * 587 +
                           (c & 0xFF) * 114) / 1000;
           lv_obj_set_style_text_color(ah_fil_num[i],
               lv_color_hex(lum > 150 ? 0x212121 : 0xFFFFFF), 0);
+          lv_obj_clear_flag(ah_fil_num[i], LV_OBJ_FLAG_HIDDEN);
+          lv_obj_add_flag(ah_fil_slash[i], LV_OBJ_FLAG_HIDDEN);
           // Chu loai nhua: mau chu giao dien binh thuong (den tren nen
           // sang, trang tren nen den) - khong theo mau nhua
           lv_obj_set_style_text_color(ah_fil_type[i],
@@ -666,6 +709,15 @@ static void ah_show_home(void) {
     lv_label_set_text(ah_fil_num[i], nbuf);
     lv_obj_set_style_text_color(ah_fil_num[i], lv_color_hex(C_TEXT), 0);
     lv_obj_center(ah_fil_num[i]);
+    // Gach cheo nam trong vong tron, chi hien khi slot trong (het nhua)
+    ah_fil_slash[i] = lv_line_create(ah_fil_circle[i]);
+    lv_obj_set_size(ah_fil_slash[i], 18, 18);
+    lv_obj_center(ah_fil_slash[i]);
+    static const lv_point_t slash_pts[2] = {{2, 2}, {16, 16}};
+    lv_line_set_points(ah_fil_slash[i], slash_pts, 2);
+    lv_obj_set_style_line_color(ah_fil_slash[i], lv_color_hex(0x9E9E9E), 0);
+    lv_obj_set_style_line_width(ah_fil_slash[i], 2, 0);
+    lv_obj_add_flag(ah_fil_slash[i], LV_OBJ_FLAG_HIDDEN);
     ah_fil_type[i] = lv_label_create(ah_fil_box);
     lv_obj_set_width(ah_fil_type[i], 55);
     lv_obj_set_style_text_align(ah_fil_type[i], LV_TEXT_ALIGN_CENTER, 0);

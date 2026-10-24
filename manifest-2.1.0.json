@@ -1,0 +1,1 @@
+{"builds":[{"chipFamily":"ESP32","parts":[{"offset":4096,"path":"bootloader.bin"},{"offset":32768,"path":"partitions.bin"},{"offset":65536,"path":"firmware-2.1.0.bin"}]}],"name":"SnapDaddy CYD Firmware","version":"2.1.0"}

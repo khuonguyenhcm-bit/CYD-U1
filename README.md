@@ -16,12 +16,11 @@ This project takes the excellent **CYD-Klipper** firmware and optimizes it for t
 
 Questions, feature requests, or bug reports? Open an issue on GitHub or reach out — happy to help.
 
-## What's new in v2.0
+## What's new in v2.1.0
 
-- **Filament row**: all 4 slots shown on the home screen with their filament color and material type, read live from the printer (Snapmaker U1). Colors are normalized the same way the printer's own screen shows them
-- **New printing dashboard**: the temperature table is replaced by a compact row — active hotend with its temperature, bed, chamber, and filament used so far in grams. The hotend icon is tinted with the color of the filament being printed
-- **Screen always on**: the display no longer turns off by itself
-- Fixed the "authorisation" spelling in the Klipper setup screens
+- **New ACE Pro build**: an optional variant with an on-screen ACE control panel — load/unload each toolhead and control the dryer (start/stop, temperature, duration) — for Anycubic ACE Pro / ACE Pro 2 units connected to the printer through [multiACE](https://github.com/decay71/multiACE)
+- **Home-screen printer name**: the title now shows the printer name set on the display (Rename Printer); if no name is set, the title is hidden instead of showing an IP address
+- **Screen timeout**: the display sleeps after 5 minutes without touch by default (adjustable in Settings → Wake Timeout) instead of staying on forever
 
 ## Hardware requirements
 
@@ -72,6 +71,8 @@ Flash directly from your browser (Chrome/Edge) — no software to install:
 
 👉 **[Flash via khuong.cloud](https://khuong.cloud/)**
 
+Two builds are offered — **Standard** for most users, and **with ACE Pro control** if your printer runs an Anycubic ACE Pro / ACE Pro 2 through multiACE (it adds an on-screen ACE panel: load/unload per toolhead + dryer controls).
+
 Steps:
 1. Connect the CYD display to your computer via USB.
 2. Open the page above in Chrome or Edge and click **Install**.
@@ -103,6 +104,9 @@ Yes — it was built and tuned for the Snapmaker U1 (4 hotends + heated chamber)
 **Does it work with other printers?**
 Yes — any printer running **Klipper + Moonraker** (Voron, Ender 3 with Klipper, Prusa with Klipper, Elegoo Neptune 4, …). Enable Moonraker on port `7125` and use the display's auto-scan to connect. The filament row reads Snapmaker U1 data and simply stays hidden on other printers.
 
+**Does it support the Anycubic ACE Pro?**
+Yes — flash the **v2.1.0 with ACE Pro control** build. The ACE connects to the printer through [multiACE](https://github.com/decay71/multiACE) (installed on the printer itself); the display then gets an ACE panel for loading/unloading each toolhead and running the dryer.
+
 **Is there a bigger-screen version?**
 Not yet — a 3.5" CYD (`ESP32-3248S035`, capacitive-touch C variant, ~$15–20) is being evaluated. The current layout is designed for 2.8" 240×320, so it needs resizing first. Expected price well under $40.
 
@@ -123,10 +127,15 @@ Redo the touchscreen calibration: with the display powered on, **hold BOOT for 8
 
 ## Version History
 
+### v2.1.0
+- **New ACE Pro build**: an optional variant with an on-screen ACE control panel — load/unload each toolhead and control the dryer (start/stop, temperature, duration) — for Anycubic ACE Pro / ACE Pro 2 units connected to the printer through multiACE
+- **Home-screen printer name**: the title now shows the printer name set on the display (Rename Printer); if no name is set, the title is hidden instead of showing an IP address
+- **Screen timeout**: the display sleeps after 5 minutes without touch by default (adjustable in Settings → Wake Timeout) instead of staying on forever
+
 ### v2.0.1
-- **Active extruder tracking**: the hotend badge now follows the printer's reported active extruder, so it switches correctly during toolchanges on multi-color prints (thanks Rich!)
 - **True U1 filament colors**: the filament row and the hotend icon now snap to the closest color from the U1's own 22-color palette (sampled from the printer's Filament Details screen) instead of approximating — pale cyan, pinks and reds now display correctly
 - **Empty slots**: a slot with no filament now shows as a circle with a diagonal slash and an "Empty" label
+- **Active extruder tracking**: the hotend badge now follows the printer's reported active extruder, so it switches correctly during toolchanges on multi-color prints (thanks Rich!)
 
 ### v2.0
 - **Filament row**: all 4 slots shown on the home screen with their filament color and material type, read live from the printer (Snapmaker U1). Colors are normalized the same way the printer's own screen shows them

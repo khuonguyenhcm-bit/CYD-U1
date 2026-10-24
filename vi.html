@@ -88,7 +88,7 @@
     Có — bất kỳ máy in nào chạy <strong>Klipper + Moonraker</strong> (Voron, Ender 3 với Klipper, Prusa với Klipper, Elegoo Neptune 4, …). Hãy bật Moonraker ở cổng <code>7125</code> và dùng tính năng tự quét của màn hình để kết nối.</p>
 
     <p><strong>Có hỗ trợ Anycubic ACE Pro không?</strong><br>
-    Có — hãy chọn bản dựng <strong>v2.1.0 có điều khiển ACE Pro</strong> trong trình cài đặt bên dưới. Bản này thêm một bảng ACE vào màn hình chính: nạp/rút từng đầu in và điều khiển máy sấy (bắt đầu/dừng, nhiệt độ, thời lượng). Bản thân ACE kết nối với máy in thông qua <a href="https://github.com/decay71/multiACE">multiACE</a>, vốn phải được cài trên máy in trước — màn hình chỉ gửi lệnh tới nó. Hướng dẫn từng bước: <a href="/ace/">hướng dẫn cài multiACE</a>.</p>
+    Có — hãy chọn bản dựng <strong>v2.1.1 có điều khiển ACE Pro</strong> trong trình cài đặt bên dưới. Bản này thêm một bảng ACE vào màn hình chính: nạp/rút từng đầu in và điều khiển máy sấy (bắt đầu/dừng, nhiệt độ, thời lượng). Bản thân ACE kết nối với máy in thông qua <a href="https://github.com/decay71/multiACE">multiACE</a>, vốn phải được cài trên máy in trước — màn hình chỉ gửi lệnh tới nó. Hướng dẫn từng bước: <a href="/ace/">hướng dẫn cài multiACE</a>.</p>
 
     <p><strong>Có phiên bản cho màn hình lớn hơn không?</strong><br>
     Chưa — một màn hình CYD 3.5" (<code>ESP32-3248S035</code>, bản C cảm ứng điện dung, khoảng $15–20) đang được đánh giá. Bố cục hiện tại được thiết kế cho màn hình 2.8" 240×320 nên cần thay đổi kích thước trước. Giá dự kiến dưới $40.</p>
@@ -162,12 +162,15 @@
       <li>Sau khi khởi động, <strong>giữ BOOT trong 8 giây</strong> và chạm vào hai điểm hiệu chỉnh để hiệu chỉnh màn hình cảm ứng.</li>
     </ol>
     <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
-    <p><strong>Hai bản dựng trong v2.1.0 — bạn cần bản nào?</strong><br>
+    <p><strong>Hai bản dựng trong v2.1.1 — bạn cần bản nào?</strong><br>
     <strong>Bản tiêu chuẩn</strong> phù hợp với hầu hết người dùng. Chỉ chọn <strong>bản có điều khiển ACE Pro</strong> nếu máy in của bạn dùng Anycubic ACE Pro / ACE Pro 2 qua <a href="https://github.com/decay71/multiACE">multiACE</a> (multiACE phải được cài trên máy in trước) — bản này thêm một bảng ACE trên màn hình để nạp/rút từng đầu in và vận hành máy sấy. Mọi thứ còn lại đều giống hệt.</p>
+    <p><strong>Mới trong v2.1.1:</strong> bản có ACE hiển thị một dòng trạng thái ACE trực tiếp trên màn hình đang in — nhiệt độ ACE, độ ẩm và sấy on/off, ngay phía trên nút Pause/Stop.</p>
     <p>
     <label for="fw-version"><strong>Phiên bản:</strong></label>
     <select id="fw-version" onchange="document.querySelector('esp-web-install-button').setAttribute('manifest', this.value)">
-      <option value="manifest-2.1.0.json">v2.1.0 — Bản tiêu chuẩn (mới nhất)</option>
+      <option value="manifest-2.1.1.json">v2.1.1 — Bản tiêu chuẩn (mới nhất)</option>
+      <option value="manifest-2.1.1-ace.json">v2.1.1 — có điều khiển ACE Pro</option>
+      <option value="manifest-2.1.0.json">v2.1.0 — Bản tiêu chuẩn</option>
       <option value="manifest-2.1.0-ace.json">v2.1.0 — có điều khiển ACE Pro</option>
       <option value="manifest-2.0.1.json">v2.0.1</option>
       <option value="manifest-2.0.json">v2.0</option>
@@ -177,7 +180,7 @@
       <option value="manifest-1.1.json">v1.1</option>
     </select>
   </p>
-<esp-web-install-button manifest="manifest-2.1.0.json" erase-first></esp-web-install-button>
+<esp-web-install-button manifest="manifest-2.1.1.json" erase-first></esp-web-install-button>
   </div>
   <div class="warn">
     <strong>⚠️ Lưu ý:</strong> việc cài đặt sẽ xóa hoàn toàn thiết bị, bao gồm cả cài đặt Wi-Fi đã lưu.
@@ -188,6 +191,11 @@
 
 <section style="max-width:760px;margin:0 auto;padding:0 20px 40px;">
   <h2>Lịch sử phiên bản</h2>
+  <h3>v2.1.1</h3>
+  <ul>
+    <li><strong>Dòng trạng thái ACE trực tiếp</strong> (bản có ACE): khi đang in, một dòng trạng thái phía trên nút Pause/Stop hiển thị nhiệt độ ACE, độ ẩm và máy sấy đang bật hay tắt — không cần mở bảng ACE chỉ để kiểm tra</li>
+    <li>Tinh chỉnh nhẹ bố cục màn hình đang in để lấy chỗ cho dòng trạng thái</li>
+  </ul>
   <h3>v2.1.0</h3>
   <ul>
     <li><strong>Bản dựng ACE Pro mới</strong>: một biến thể tùy chọn có bảng điều khiển ACE trên màn hình — nạp/rút từng đầu in và điều khiển máy sấy (bắt đầu/dừng, nhiệt độ, thời lượng) — dành cho các bộ Anycubic ACE Pro / ACE Pro 2 được kết nối với máy in qua multiACE</li>

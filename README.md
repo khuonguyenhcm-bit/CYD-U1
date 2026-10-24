@@ -16,11 +16,10 @@ This project takes the excellent **CYD-Klipper** firmware and optimizes it for t
 
 Questions, feature requests, or bug reports? Open an issue on GitHub or reach out — happy to help.
 
-## What's new in v2.1.0
+## What's new in v2.1.1
 
-- **New ACE Pro build**: an optional variant with an on-screen ACE control panel — load/unload each toolhead and control the dryer (start/stop, temperature, duration) — for Anycubic ACE Pro / ACE Pro 2 units connected to the printer through [multiACE](https://github.com/decay71/multiACE)
-- **Home-screen printer name**: the title now shows the printer name set on the display (Rename Printer); if no name is set, the title is hidden instead of showing an IP address
-- **Screen timeout**: the display sleeps after 5 minutes without touch by default (adjustable in Settings → Wake Timeout) instead of staying on forever
+- **Live ACE status line** (ACE build): while printing, a status line above the Pause/Stop buttons shows the ACE temperature, humidity and whether the dryer is on or off — no need to open the ACE panel just to check
+- Small printing-screen layout polish to make room for the status line
 
 ## Hardware requirements
 
@@ -105,7 +104,7 @@ Yes — it was built and tuned for the Snapmaker U1 (4 hotends + heated chamber)
 Yes — any printer running **Klipper + Moonraker** (Voron, Ender 3 with Klipper, Prusa with Klipper, Elegoo Neptune 4, …). Enable Moonraker on port `7125` and use the display's auto-scan to connect. The filament row reads Snapmaker U1 data and simply stays hidden on other printers.
 
 **Does it support the Anycubic ACE Pro?**
-Yes — flash the **v2.1.0 with ACE Pro control** build. The ACE connects to the printer through [multiACE](https://github.com/decay71/multiACE) (installed on the printer itself); the display then gets an ACE panel for loading/unloading each toolhead and running the dryer.
+Yes — flash the **v2.1.1 with ACE Pro control** build. The ACE connects to the printer through [multiACE](https://github.com/decay71/multiACE) (installed on the printer itself); the display then gets an ACE panel for loading/unloading each toolhead and running the dryer.
 
 **Is there a bigger-screen version?**
 Not yet — a 3.5" CYD (`ESP32-3248S035`, capacitive-touch C variant, ~$15–20) is being evaluated. The current layout is designed for 2.8" 240×320, so it needs resizing first. Expected price well under $40.
@@ -126,6 +125,10 @@ Your board is not damaged, and dual-USB (micro USB + USB-C) CYD boards are suppo
 Redo the touchscreen calibration: with the display powered on, **hold BOOT for 8 seconds**, release, then tap the two crosshairs as precisely as you can. The first boot after every web flash asks for this — tap carefully, small keys need it.
 
 ## Version History
+
+### v2.1.1
+- **Live ACE status line** (ACE build): while printing, a status line above the Pause/Stop buttons shows the ACE temperature, humidity and whether the dryer is on or off — no need to open the ACE panel just to check
+- Small printing-screen layout polish to make room for the status line
 
 ### v2.1.0
 - **New ACE Pro build**: an optional variant with an on-screen ACE control panel — load/unload each toolhead and control the dryer (start/stop, temperature, duration) — for Anycubic ACE Pro / ACE Pro 2 units connected to the printer through multiACE

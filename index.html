@@ -88,7 +88,7 @@
     Yes — any printer running <strong>Klipper + Moonraker</strong> (Voron, Ender 3 with Klipper, Prusa with Klipper, Elegoo Neptune 4, …). Enable Moonraker on port <code>7125</code> and use the display's auto-scan to connect.</p>
 
     <p><strong>Does it support the Anycubic ACE Pro?</strong><br>
-    Yes — pick the <strong>v2.1.0 with ACE Pro control</strong> build in the installer below. It adds an ACE panel to the home screen: load/unload each toolhead and control the dryer (start/stop, temperature, duration). The ACE itself connects to the printer through <a href="https://github.com/decay71/multiACE">multiACE</a>, which must be installed on the printer first — the display only sends it commands. Step-by-step: <a href="https://khuong.cloud/ace/">multiACE install guide</a> (<a href="https://khuong.cloud/ace/en.html">English version</a>).</p>
+    Yes — pick the <strong>v2.1.1 with ACE Pro control</strong> build in the installer below. It adds an ACE panel to the home screen: load/unload each toolhead and control the dryer (start/stop, temperature, duration). The ACE itself connects to the printer through <a href="https://github.com/decay71/multiACE">multiACE</a>, which must be installed on the printer first — the display only sends it commands. Step-by-step: <a href="https://khuong.cloud/ace/">multiACE install guide</a> (<a href="https://khuong.cloud/ace/en.html">English version</a>).</p>
 
     <p><strong>Is there a bigger-screen version?</strong><br>
     Not yet — a 3.5" CYD (<code>ESP32-3248S035</code>, capacitive-touch C variant, ~$15–20) is being evaluated. The current layout is designed for 2.8" 240×320, so it needs resizing first. Expected price well under $40.</p>
@@ -162,12 +162,15 @@
       <li>After boot, <strong>hold BOOT for 8 seconds</strong> and touch the two calibration points to calibrate the touchscreen.</li>
     </ol>
     <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
-    <p><strong>Two builds in v2.1.0 — which one do you need?</strong><br>
+    <p><strong>Two builds in v2.1.1 — which one do you need?</strong><br>
     <strong>Standard</strong> is right for most users. Pick <strong>with ACE Pro control</strong> only if your printer runs an Anycubic ACE Pro / ACE Pro 2 through <a href="https://github.com/decay71/multiACE">multiACE</a> (multiACE must be installed on the printer first) — it adds an ACE panel on the display for loading/unloading each toolhead and running the dryer. Everything else is identical.</p>
+    <p><strong>New in v2.1.1:</strong> the ACE build shows a live ACE status line on the printing screen — ACE temperature, humidity and dryer on/off, right above the Pause/Stop buttons.</p>
     <p>
     <label for="fw-version"><strong>Version:</strong></label>
     <select id="fw-version" onchange="document.querySelector('esp-web-install-button').setAttribute('manifest', this.value)">
-      <option value="manifest-2.1.0.json">v2.1.0 — Standard (latest)</option>
+      <option value="manifest-2.1.1.json">v2.1.1 — Standard (latest)</option>
+      <option value="manifest-2.1.1-ace.json">v2.1.1 — with ACE Pro control</option>
+      <option value="manifest-2.1.0.json">v2.1.0 — Standard</option>
       <option value="manifest-2.1.0-ace.json">v2.1.0 — with ACE Pro control</option>
       <option value="manifest-2.0.1.json">v2.0.1</option>
       <option value="manifest-2.0.json">v2.0</option>
@@ -177,7 +180,7 @@
       <option value="manifest-1.1.json">v1.1</option>
     </select>
   </p>
-<esp-web-install-button manifest="manifest-2.1.0.json" erase-first></esp-web-install-button>
+<esp-web-install-button manifest="manifest-2.1.1.json" erase-first></esp-web-install-button>
   </div>
   <div class="warn">
     <strong>⚠️ Please note:</strong> installing erases the device completely, including saved Wi-Fi settings.
@@ -188,6 +191,11 @@
 
 <section style="max-width:760px;margin:0 auto;padding:0 20px 40px;">
   <h2>Version History</h2>
+  <h3>v2.1.1</h3>
+  <ul>
+    <li><strong>Live ACE status line</strong> (ACE build): while printing, a status line above the Pause/Stop buttons shows the ACE temperature, humidity and whether the dryer is on or off — no need to open the ACE panel just to check</li>
+    <li>Small printing-screen layout polish to make room for the status line</li>
+  </ul>
   <h3>v2.1.0</h3>
   <ul>
     <li><strong>New ACE Pro build</strong>: an optional variant with an on-screen ACE control panel — load/unload each toolhead and control the dryer (start/stop, temperature, duration) — for Anycubic ACE Pro / ACE Pro 2 units connected to the printer through multiACE</li>

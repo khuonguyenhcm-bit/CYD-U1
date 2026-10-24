@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SnapDaddy — Màn hình Klipper tùy chỉnh cho Snapmaker U1</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  :root { --red: #E53935; --dark: #1a1a1a; --gray: #666; --light: #f6f6f6; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, system-ui, "Segoe UI", sans-serif; margin: 0; color: #222; line-height: 1.65; }
+  header { background: var(--dark); color: #fff; padding: 56px 20px; text-align: center; }
+  header h1 { margin: 0 0 8px; font-size: 2.2em; }
+  header p { color: #bbb; max-width: 600px; margin: 0 auto; }
+  .coffee-btn { display: inline-block; margin-top: 20px; background: #FFDD00; color: #000; font-weight: 700; padding: 12px 28px; border-radius: 999px; text-decoration: none; }
+  .coffee-btn:hover { background: #ffce00; }
+  main { max-width: 760px; margin: 0 auto; padding: 40px 20px; }
+  h2 { border-bottom: 2px solid var(--red); padding-bottom: 6px; margin-top: 48px; }
+  .card { background: var(--light); border-radius: 12px; padding: 20px 24px; margin: 20px 0; }
+  .states { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 20px 0; }
+  .state { background: var(--light); border-radius: 12px; padding: 18px; }
+  .state h3 { margin: 0 0 8px; font-size: 1.05em; }
+  .state .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+  .warn { background: #fff8e1; border-left: 4px solid #f9a825; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 20px 0; }
+  code { background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+  ol li, ul li { margin-bottom: 6px; }
+  esp-web-install-button { margin: 16px 0; display: block; }
+  footer { text-align: center; color: #888; font-size: 0.85em; padding: 32px 20px; border-top: 1px solid #eee; }
+  footer a { color: var(--red); }
+  .top { position: sticky; top: 0; background: rgba(11,18,32,.92); border-bottom: 1px solid #1f2c47; z-index: 50; backdrop-filter: blur(6px); }
+  .topin { max-width: 760px; margin: 0 auto; padding: 10px 20px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-family: -apple-system, system-ui, "Segoe UI", sans-serif; }
+  .top .brand { font-weight: 700; color: #fff; margin-right: 10px; }
+  .top .tab { padding: 6px 14px; border: 1px solid #1f2c47; border-radius: 999px; color: #8fa3c4; text-decoration: none; font-size: 14px; }
+  .top .tab.on { background: #0ea5c6; border-color: #0ea5c6; color: #fff; }
+  .top .lang { margin-left: auto; font-size: 14px; color: #8fa3c4; }
+  .top .lang a { color: #8fa3c4; text-decoration: none; }
+  .top .lang strong { color: #fff; }
+</style>
+</head>
+<body>
+<div class="top"><div class="topin">
+  <span class="brand">SnapDaddy</span>
+  <a class="tab on" href="/vi.html">CYD Firmware</a>
+  <a class="tab" href="/ace/">Hướng dẫn multiACE</a>
+  <span class="lang"><strong>Tiếng Việt</strong> · <a href="/">English</a></span>
+</div></div>
+
+
+<header>
+  <h1>🖨️ SnapDaddy</h1>
+  <p>Firmware màn hình Klipper tùy chỉnh cho Snapmaker U1 — dựa trên <a href="https://github.com/printorems/cyd-klipper" style="color:#fff;">CYD-Klipper</a>, được làm lại với giao diện dọc, các màn hình trạng thái có hoạt ảnh và tính năng in bằng một lần chạm.</p>
+  <a class="coffee-btn" href="https://buymeacoffee.com/khuongka" target="_blank">☕ Mời tôi một ly cà phê</a>
+  <p style="margin-top:12px;"><strong>📩 Cần firmware tùy chỉnh hoặc có bất kỳ câu hỏi nào? Hãy liên hệ với tôi qua WhatsApp: <code style="background:rgba(255,255,255,0.2);color:#fff;">wallenme</code></strong></p>
+</header>
+
+<main>
+  <h2>Giới thiệu</h2>
+  <p>Dự án này sử dụng firmware <strong>CYD-Klipper</strong> tuyệt vời và tối ưu hóa nó cho <strong>Snapmaker U1</strong> (4 đầu nóng + buồng được gia nhiệt). Giao diện ngang mặc định được thay bằng một giao diện dọc được thiết kế chuyên biệt: hình minh họa trạng thái có hoạt ảnh, trình duyệt file có hình thu nhỏ và các nút điều khiển cảm ứng lớn, dễ thao tác.</p>
+  <p>Có câu hỏi, yêu cầu tính năng hoặc báo lỗi? Hãy mở một issue trên <a href="https://github.com/khuonguyenhcm-bit/CYD-U1">GitHub</a> hoặc liên hệ với tôi — rất sẵn lòng hỗ trợ.</p>
+
+  <h2>Yêu cầu phần cứng</h2>
+  <div class="card">
+    <ul>
+      <li><strong>Màn hình:</strong> CYD 2.8" — ESP32-2432S028R (bản không có PSRAM)</li>
+      <li><strong>Máy in:</strong> Snapmaker U1 chạy Klipper + Moonraker (cổng <code>7125</code>)</li>
+      <li><strong>Mạng:</strong> Wi-Fi 2.4&nbsp;GHz (màn hình và máy in dùng cùng một mạng)</li>
+      <li><strong>Phần mềm cắt lớp:</strong> OrcaSlicer / Snapmaker Orca với hình thu nhỏ <code>32x32</code> được bật để hiển thị hình xem trước</li>
+    </ul>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:16px;">
+      <img src="docs/board-front.jpg" alt="Mặt trước của bo mạch CYD" style="width:100%;border-radius:8px;">
+      <img src="docs/board-back.jpg" alt="Mặt sau của bo mạch CYD" style="width:100%;border-radius:8px;">
+      <img src="docs/board-detail.jpg" alt="Chi tiết bo mạch CYD" style="width:100%;border-radius:8px;">
+    </div>
+    <p style="color:#888;font-size:0.85em;margin-top:8px;">Bo mạch ESP32-2432S028R — mặt trước, mặt sau và ảnh chi tiết.</p>
+  </div>
+
+<h2>Câu hỏi thường gặp</h2>
+  <div class="card">
+    <p><strong>Firmware này dùng màn hình nào?</strong><br>
+    CYD 2.8" — <code>ESP32-2432S028R</code> (240×320, cảm ứng điện trở). Hãy dùng đúng model đó; các bo mạch khác không được bản dựng này hỗ trợ.</p>
+
+    <p><strong>Có dùng được với Snapmaker U1 không?</strong><br>
+    Có — firmware được xây dựng và tinh chỉnh cho Snapmaker U1 (4 đầu nóng + buồng được gia nhiệt). Máy in một đầu phun chỉ hiển thị <code>--</code> ở các khe không dùng.</p>
+
+    <p><strong>Có dùng được với máy in khác không?</strong><br>
+    Có — bất kỳ máy in nào chạy <strong>Klipper + Moonraker</strong> (Voron, Ender 3 với Klipper, Prusa với Klipper, Elegoo Neptune 4, …). Hãy bật Moonraker ở cổng <code>7125</code> và dùng tính năng tự quét của màn hình để kết nối.</p>
+
+    <p><strong>Có hỗ trợ Anycubic ACE Pro không?</strong><br>
+    Có — hãy chọn bản dựng <strong>v2.1.0 có điều khiển ACE Pro</strong> trong trình cài đặt bên dưới. Bản này thêm một bảng ACE vào màn hình chính: nạp/rút từng đầu in và điều khiển máy sấy (bắt đầu/dừng, nhiệt độ, thời lượng). Bản thân ACE kết nối với máy in thông qua <a href="https://github.com/decay71/multiACE">multiACE</a>, vốn phải được cài trên máy in trước — màn hình chỉ gửi lệnh tới nó. Hướng dẫn từng bước: <a href="/ace/">hướng dẫn cài multiACE</a>.</p>
+
+    <p><strong>Có phiên bản cho màn hình lớn hơn không?</strong><br>
+    Chưa — một màn hình CYD 3.5" (<code>ESP32-3248S035</code>, bản C cảm ứng điện dung, khoảng $15–20) đang được đánh giá. Bố cục hiện tại được thiết kế cho màn hình 2.8" 240×320 nên cần thay đổi kích thước trước. Giá dự kiến dưới $40.</p>
+
+    <p><strong>Sẽ có âm thanh thông báo không?</strong><br>
+    Có — một phiên bản có tiếng chuông nhỏ khi một bản in bắt đầu và kết thúc (phong cách Bambu Lab) đang được phát triển.</p>
+
+    <p><strong>Giá bao nhiêu? Tôi có thể mua một cái không?</strong><br>
+    Đây là dự án sở thích, không phải sản phẩm — firmware miễn phí và tôi không bán màn hình. Hãy tự nạp bằng trình cài đặt ở trên.</p>
+
+    <p><strong>Màn hình đen sau khi nạp từ trang web?</strong><br>
+    Trình cài đặt web hiện <strong>tự động xóa màn hình</strong> và nạp ảnh hoàn chỉnh (bootloader + phân vùng + firmware) — việc bỏ qua bước xóa cùng một lần nạp không đầy đủ là nguyên nhân. Nếu bạn đã nạp trước khi có bản sửa này, chỉ cần chạy lại trình cài đặt web.</p>
+
+    <p><strong>Vòng lặp khởi động — bảng điều khiển lặp lại <code>invalid header: 0xffffffff</code>?</strong><br>
+    Bo mạch của bạn không bị hỏng, và các bo mạch CYD hai cổng USB (micro USB + USB-C) đều được hỗ trợ. Đây là lỗi của trình cài đặt: các manifest v1.1/v1.2 cũ chỉ ghi firmware ứng dụng, nên sau khi xóa, chip không có bootloader hoặc phân vùng để khởi động. Tất cả manifest đã được sửa và kiểm chứng vào 2026-10-12 — chỉ cần chạy lại trình cài đặt web ở trên; nó sẽ tự động xóa, ghi ảnh hoàn chỉnh và bo mạch sẽ hoạt động trở lại. Không cần công cụ đặc biệt.</p>
+
+    <p><strong>Chạm sai vị trí / bàn phím nhận sai phím?</strong><br>
+    Hãy hiệu chỉnh lại màn hình cảm ứng: khi màn hình đang bật, <strong>giữ BOOT trong 8 giây</strong>, thả ra, rồi chạm vào hai dấu thập càng chính xác càng tốt. Lần khởi động đầu tiên sau mỗi lần nạp qua web sẽ yêu cầu làm việc này — hãy chạm cẩn thận vì các phím nhỏ cần độ chính xác.</p>
+  </div>
+
+  <h2>Cách hoạt động</h2>
+  <p>Màn hình kết nối với Moonraker qua Wi-Fi và phản ánh trạng thái của máy in theo thời gian thực. Màn hình tự động chuyển hình minh họa và bố cục theo từng trạng thái:</p>
+  <div class="states">
+    <div class="state">
+      <img src="docs/sim-idle.png" alt="Chờ" style="width:100%;border-radius:8px;">
+      <h3><span class="dot" style="background:#9e9e9e"></span>Chờ / Sẵn sàng</h3>
+      <p>Màn hình ngủ tối với hoạt ảnh mặt trăng nhẹ nhàng. Chạm <strong>START</strong> để duyệt các file <code>.gcode</code> được lưu trên máy in — mỗi file có hình thu nhỏ — rồi xác nhận để in.</p>
+    </div>
+    <div class="state">
+      <img src="docs/sim-printing.png" alt="Đang in" style="width:100%;border-radius:8px;">
+      <h3><span class="dot" style="background:#4CAF50"></span>Đang in <em style="font-size:0.75em;color:#4CAF50;">Mới trong v2.0</em></h3>
+      <p>Hình minh họa máy in có hoạt ảnh, thanh tiến trình trực tiếp, lớp hiện tại/tổng số lớp và thời gian còn lại. Một bảng điều khiển thu gọn hiển thị đầu nóng đang hoạt động (biểu tượng của nó được tô bằng màu của sợi nhựa đang in), nhiệt độ bàn và buồng, cùng lượng sợi nhựa đã dùng đến nay tính bằng gam. Bên dưới, một hàng sợi nhựa hiển thị màu và vật liệu của cả 4 khe, được đọc trực tiếp từ máy in. Có các nút <strong>Tạm dừng/Tiếp tục</strong> và <strong>Dừng</strong>.</p>
+    </div>
+    <div class="state">
+      <img src="docs/sim-error.png" alt="Lỗi" style="width:100%;border-radius:8px;">
+      <h3><span class="dot" style="background:#E53935"></span>Lỗi</h3>
+      <p>Hoạt ảnh cảnh báo màu đỏ với thông báo lỗi của máy in, để bạn nhận ra một bản in bị lỗi ngay từ cái nhìn đầu tiên.</p>
+    </div>
+    <div class="state">
+      <img src="docs/sim-preparing.png" alt="Đang chuẩn bị" style="width:100%;border-radius:8px;">
+      <h3><span class="dot" style="background:#FF9800"></span>Đang chuẩn bị <em style="font-size:0.75em;color:#4CAF50;">Mới trong v1.1</em></h3>
+      <p>Hoạt ảnh gia nhiệt trong khi máy in làm nóng đầu nóng và bàn trước khi quá trình in bắt đầu.</p>
+    </div>
+    <div class="state">
+      <img src="docs/sim-paused.png" alt="Đã tạm dừng" style="width:100%;border-radius:8px;">
+      <h3><span class="dot" style="background:#FFC107"></span>Đã tạm dừng <em style="font-size:0.75em;color:#4CAF50;">Mới trong v1.1</em></h3>
+      <p>Hoạt ảnh tạm dừng riêng. Chạm <strong>Tiếp tục</strong> để tiếp tục in (có bước xác nhận).</p>
+    </div>
+    <div class="state">
+      <img src="docs/sim-complete.png" alt="Hoàn tất" style="width:100%;border-radius:8px;">
+      <h3><span class="dot" style="background:#8BC34A"></span>Hoàn tất <em style="font-size:0.75em;color:#4CAF50;">Mới trong v1.1</em></h3>
+      <p>Hoạt ảnh ăn mừng khi một bản in kết thúc. Tự động trở về trạng thái chờ sau 15 phút.</p>
+    </div>
+  </div>
+
+  <h2>Video hướng dẫn</h2>
+  <div class="card">
+    <p>Xem toàn bộ hướng dẫn chi tiết — nạp firmware, thiết lập và in:</p>
+    <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;">
+      <iframe src="https://www.youtube.com/embed/nsUZelU09KI" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allowfullscreen title="Video hướng dẫn SnapDaddy"></iframe>
+    </div>
+  </div>
+
+  <h2>Nạp firmware</h2>
+  <div class="card">
+    <ol>
+      <li>Kết nối màn hình CYD với máy tính của bạn qua USB.</li>
+      <li>Dùng <strong>Chrome</strong> hoặc <strong>Edge</strong> (cần có WebSerial).</li>
+      <li>Nhấp nút <strong>Install</strong> bên dưới và chọn cổng nối tiếp của màn hình.</li>
+      <li>Đợi 1–2 phút, sau đó để màn hình khởi động lại.</li>
+      <li>Sau khi khởi động, <strong>giữ BOOT trong 8 giây</strong> và chạm vào hai điểm hiệu chỉnh để hiệu chỉnh màn hình cảm ứng.</li>
+    </ol>
+    <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+    <p><strong>Hai bản dựng trong v2.1.0 — bạn cần bản nào?</strong><br>
+    <strong>Bản tiêu chuẩn</strong> phù hợp với hầu hết người dùng. Chỉ chọn <strong>bản có điều khiển ACE Pro</strong> nếu máy in của bạn dùng Anycubic ACE Pro / ACE Pro 2 qua <a href="https://github.com/decay71/multiACE">multiACE</a> (multiACE phải được cài trên máy in trước) — bản này thêm một bảng ACE trên màn hình để nạp/rút từng đầu in và vận hành máy sấy. Mọi thứ còn lại đều giống hệt.</p>
+    <p>
+    <label for="fw-version"><strong>Phiên bản:</strong></label>
+    <select id="fw-version" onchange="document.querySelector('esp-web-install-button').setAttribute('manifest', this.value)">
+      <option value="manifest-2.1.0.json">v2.1.0 — Bản tiêu chuẩn (mới nhất)</option>
+      <option value="manifest-2.1.0-ace.json">v2.1.0 — có điều khiển ACE Pro</option>
+      <option value="manifest-2.0.1.json">v2.0.1</option>
+      <option value="manifest-2.0.json">v2.0</option>
+      <option value="manifest-1.3.1.json">v1.3.1</option>
+      <option value="manifest-1.3.json">v1.3</option>
+      <option value="manifest.json">v1.2</option>
+      <option value="manifest-1.1.json">v1.1</option>
+    </select>
+  </p>
+<esp-web-install-button manifest="manifest-2.1.0.json" erase-first></esp-web-install-button>
+  </div>
+  <div class="warn">
+    <strong>⚠️ Lưu ý:</strong> việc cài đặt sẽ xóa hoàn toàn thiết bị, bao gồm cả cài đặt Wi-Fi đã lưu.
+    Điều này là bắt buộc — bản dựng này dùng bố cục phân vùng <code>min_spiffs</code>, và bỏ qua bước xóa có thể gây màn hình đen.
+    Chỉ cần nhập lại Wi-Fi của bạn sau khi nạp.
+  </div>
+</main>
+
+<section style="max-width:760px;margin:0 auto;padding:0 20px 40px;">
+  <h2>Lịch sử phiên bản</h2>
+  <h3>v2.1.0</h3>
+  <ul>
+    <li><strong>Bản dựng ACE Pro mới</strong>: một biến thể tùy chọn có bảng điều khiển ACE trên màn hình — nạp/rút từng đầu in và điều khiển máy sấy (bắt đầu/dừng, nhiệt độ, thời lượng) — dành cho các bộ Anycubic ACE Pro / ACE Pro 2 được kết nối với máy in qua multiACE</li>
+    <li><strong>Tên máy in trên màn hình chính</strong>: tiêu đề giờ hiển thị tên máy in được đặt trên màn hình (Rename Printer); nếu chưa đặt tên, tiêu đề sẽ bị ẩn thay vì hiển thị địa chỉ IP</li>
+    <li><strong>Thời gian chờ màn hình</strong>: màn hình mặc định ngủ sau 5 phút không chạm (có thể điều chỉnh trong Settings → Wake Timeout) thay vì bật mãi mãi</li>
+  </ul>
+  <h3>v2.0.1</h3>
+  <ul>
+    <li><strong>Màu sợi nhựa U1 chính xác</strong>: hàng sợi nhựa và biểu tượng đầu nóng giờ khớp với màu gần nhất trong bảng 22 màu của chính U1 (được lấy mẫu từ màn hình Filament Details của máy in) thay vì ước tính — màu lục lam nhạt, hồng và đỏ giờ hiển thị chính xác</li>
+    <li><strong>Khe trống</strong>: một khe không có sợi nhựa giờ hiển thị dưới dạng một vòng tròn có đường gạch chéo và nhãn "Trống"</li>
+    <li><strong>Theo dõi đầu phun đang hoạt động</strong>: huy hiệu đầu nóng giờ đi theo đầu phun đang hoạt động do máy in báo cáo, nên nó chuyển đổi chính xác trong các lần thay đầu khi in nhiều màu (cảm ơn Rich!)</li>
+  </ul>
+  <h3>v2.0</h3>
+  <ul>
+    <li><strong>Hàng sợi nhựa</strong>: cả 4 khe đều hiển thị trên màn hình chính cùng màu và loại vật liệu của sợi nhựa, được đọc trực tiếp từ máy in (Snapmaker U1). Màu sắc được chuẩn hóa theo cùng cách màn hình của chính máy in hiển thị</li>
+    <li><strong>Bảng điều khiển in mới</strong>: bảng nhiệt độ được thay bằng một hàng thu gọn — đầu nóng đang hoạt động cùng nhiệt độ của nó, bàn, buồng và lượng sợi nhựa đã dùng đến nay tính bằng gam. Biểu tượng đầu nóng được tô bằng màu của sợi nhựa đang được in</li>
+    <li><strong>Màn hình luôn bật</strong>: màn hình không còn tự tắt nữa</li>
+    <li>Đã sửa cách viết "authorisation" trong các màn hình thiết lập Klipper (cảm ơn Rich!)</li>
+  </ul>
+  <h3>v1.3.1</h3>
+  <ul>
+    <li><strong>Độ dễ đọc của danh sách file</strong>: tên file trong menu chọn file trước đây là chữ trắng trên nền trắng — giờ là chữ tối và rõ ràng, dễ đọc</li>
+    <li><strong>Danh sách file vừa màn hình</strong>: danh sách không còn cuộn ngang; nó được định kích thước cho màn hình dọc và chỉ cuộn theo chiều dọc</li>
+    <li><strong>Hộp thoại xác nhận in</strong>: hộp thoại in file từng tràn khỏi màn hình dọc và cắt mất các tên file dài — giờ đã đúng kích thước</li>
+    <li><strong>Mã truy cập Bambu</strong>: trường mã truy cập giờ chấp nhận cả chữ cái và số (bàn phím đầy đủ), nên có thể nhập các mã hex</li>
+  </ul>
+  <h3>v1.3</h3>
+  <ul>
+    <li><strong>Đã sửa các màn hình thiết lập</strong>: thiết lập WiFi và máy in không còn tràn khỏi màn hình dọc (bàn phím từng bị cắt và các nút chạy ra ngoài màn hình)</li>
+    <li><strong>Tìm máy in trong thiết lập</strong>: thiết lập Klipper có thể quét WiFi của bạn và tự động điền IP máy in, kèm một nút kết nối để nhập thủ công</li>
+    <li><strong>Sửa hiệu chỉnh cảm ứng</strong> cho các màn hình đã xoay (hiệu chỉnh lại một lần sau khi nạp)</li>
+    <li>Cổng Klipper giờ mặc định là 7125 (Moonraker), và tính năng tự quét máy in nhanh hơn</li>
+  </ul>
+  <h3>v1.2</h3>
+  <ul>
+    <li><strong>Tự quét máy in</strong>: nếu màn hình không kết nối được với máy in trong 3 phút, nó sẽ quét WiFi của bạn để tìm Moonraker và tự động kết nối lại</li>
+    <li><strong>Nút tìm máy in</strong>: chạm để quét ngay thay vì phải chờ</li>
+  </ul>
+  <h3>v1.1</h3>
+  <ul>
+    <li>Trạng thái <strong>Đang chuẩn bị</strong> mới: hoạt ảnh gia nhiệt trong khi máy in làm nóng trước khi in</li>
+    <li>Trạng thái <strong>Hoàn tất</strong> mới: hoạt ảnh ăn mừng khi một bản in kết thúc (tự động trở về trạng thái chờ sau 15 phút)</li>
+    <li>Trạng thái <strong>Đã tạm dừng</strong> mới: hoạt ảnh tạm dừng riêng</li>
+    <li><strong>Xác nhận tạm dừng/dừng</strong>: chạm Tạm dừng hoặc Dừng giờ sẽ yêu cầu xác nhận trước khi thực hiện</li>
+    <li>Tất cả hoạt ảnh trạng thái được phóng to thêm 10%</li>
+  </ul>
+  <h3>v1.0</h3>
+  <ul>
+    <li>Bản phát hành công khai đầu tiên: giao diện dọc, các màn hình Chờ/Đang in/Lỗi có hoạt ảnh, trình duyệt file có hình thu nhỏ, xác nhận in, nhiệt độ của 4 đầu nóng + buồng</li>
+  </ul>
+</section>
+
+<section style="max-width:760px;margin:0 auto;padding:0 20px 40px;">
+  <h2>Về tôi</h2>
+  <div style="display:flex;align-items:center;gap:20px;margin:20px 0;">
+    <img src="avatar.jpg" alt="khuong nguyen" style="width:96px;height:96px;border-radius:50%;object-fit:cover;">
+    <div>
+      <h3 style="margin:0;">khuong nguyen</h3>
+      <p style="margin:4px 0;color:#666;">Maker · người yêu ẩm thực · người đam mê đồ công nghệ</p>
+      <p style="margin:4px 0;">
+        <a href="https://facebook.com/ngkhuong">Facebook</a> ·
+        <a href="https://instagram.com/wallenme">Instagram</a> ·
+        WhatsApp: <code>wallenme</code>
+      </p>
+    </div>
+  </div>
+  <p>Tôi yêu đồ ăn ngon và thích mày mò đồ điện tử. Dự án màn hình CYD này bắt đầu như một thử nghiệm cuối tuần cho chiếc Snapmaker U1 của tôi và đã phát triển thành một thứ đáng để chia sẻ.</p>
+  <p><a href="https://instagram.com/wallenme">📸 Xem thêm các bản dựng của tôi trên Instagram @wallenme</a></p>
+</section>
+
+<footer>
+  Mã nguồn mở — dựa trên <a href="https://github.com/printorems/cyd-klipper">CYD-Klipper</a> ·
+  Giao diện tùy chỉnh bởi khuong nguyen ·
+  <a href="https://buymeacoffee.com/khuongka">☕ Mời tôi một ly cà phê</a>
+</footer>
+
+</body>
+</html>

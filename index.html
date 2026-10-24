@@ -180,12 +180,15 @@
       <option value="manifest-1.1.json">v1.1</option>
     </select>
   </p>
+  <p>
+    <label><input type="checkbox" id="fw-erase" checked onchange="document.querySelector('esp-web-install-button').toggleAttribute('erase-first', this.checked)"> <strong>Erase device first</strong></label><br>
+    Recommended for a first install. If you are only <strong>updating from a previous SnapDaddy version</strong>, you can uncheck this to keep your saved Wi-Fi and printer settings — all SnapDaddy builds share the same partition layout, so updating without erasing is safe.
+  </p>
 <esp-web-install-button manifest="manifest-2.1.1.json" erase-first></esp-web-install-button>
   </div>
   <div class="warn">
-    <strong>⚠️ Please note:</strong> installing erases the device completely, including saved Wi-Fi settings.
-    This is required — this build uses the <code>min_spiffs</code> partition layout, and skipping the erase can cause a black screen.
-    Just re-enter your Wi-Fi after flashing.
+    <strong>⚠️ Please note:</strong> with "Erase device first" ticked (the default), installing erases the device completely, including saved Wi-Fi settings — just re-enter your Wi-Fi after flashing.
+    Keep the erase on for a first install or if the display misbehaves. Unticked (update mode) keeps your settings; if anything looks wrong after an update, flash again with the erase ticked.
   </div>
 </main>
 

@@ -78,7 +78,7 @@ Steps:
 3. Pick the display's serial port and wait 1–2 minutes, then let the display reboot.
 4. After boot, **hold BOOT for 8 seconds** and touch the two calibration points to calibrate the touchscreen.
 
-> ⚠️ **Please note:** installing erases the device completely, including saved Wi-Fi settings. This is required — this build uses the `min_spiffs` partition layout, and skipping the erase can cause a black screen. Just re-enter your Wi-Fi after flashing.
+> ⚠️ **Please note:** by default, installing erases the device completely, including saved Wi-Fi settings — just re-enter your Wi-Fi after flashing. **Updating from a previous SnapDaddy version?** Untick "Erase device first" on the web installer to keep your Wi-Fi and settings — all SnapDaddy builds share the same partition layout (`min_spiffs`), so updating without erasing is safe. Keep the erase on for a first install or if the display misbehaves.
 
 ## Building from source
 

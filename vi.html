@@ -180,12 +180,15 @@
       <option value="manifest-1.1.json">v1.1</option>
     </select>
   </p>
+  <p>
+    <label><input type="checkbox" id="fw-erase" checked onchange="document.querySelector('esp-web-install-button').toggleAttribute('erase-first', this.checked)"> <strong>Xoá thiết bị trước khi cài</strong></label><br>
+    Nên dùng cho lần cài đầu tiên. Nếu bạn chỉ <strong>cập nhật từ một phiên bản SnapDaddy trước đó</strong>, có thể bỏ chọn mục này để giữ lại Wi-Fi và cài đặt máy in đã lưu — mọi bản SnapDaddy dùng chung một bố cục phân vùng, nên cập nhật mà không xoá vẫn an toàn.
+  </p>
 <esp-web-install-button manifest="manifest-2.1.1.json" erase-first></esp-web-install-button>
   </div>
   <div class="warn">
-    <strong>⚠️ Lưu ý:</strong> việc cài đặt sẽ xóa hoàn toàn thiết bị, bao gồm cả cài đặt Wi-Fi đã lưu.
-    Điều này là bắt buộc — bản dựng này dùng bố cục phân vùng <code>min_spiffs</code>, và bỏ qua bước xóa có thể gây màn hình đen.
-    Chỉ cần nhập lại Wi-Fi của bạn sau khi nạp.
+    <strong>⚠️ Lưu ý:</strong> khi mục "Xoá thiết bị trước khi cài" được chọn (mặc định), việc cài đặt sẽ xoá hoàn toàn thiết bị, bao gồm cả cài đặt Wi-Fi đã lưu — chỉ cần nhập lại Wi-Fi sau khi nạp.
+    Hãy giữ bước xoá cho lần cài đầu tiên hoặc khi màn hình có biểu hiện lạ. Bỏ chọn (chế độ cập nhật) sẽ giữ lại cài đặt của bạn; nếu sau khi cập nhật có gì không ổn, hãy nạp lại với mục xoá được chọn.
   </div>
 </main>
 
